@@ -1,0 +1,13 @@
+# Real data must never reach the public repo (PUB-02)
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+backups/
+
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+.env*
+.DS_Store

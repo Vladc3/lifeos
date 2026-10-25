@@ -1,0 +1,2 @@
+# Migrations must be byte-identical on every OS: include_str! and sqlx checksums (plan F1, D2)
+*.sql text eol=lf

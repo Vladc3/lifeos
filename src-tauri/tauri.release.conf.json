@@ -1,0 +1,5 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Life OS",
+  "identifier": "io.github.vladc3.lifeos"
+}

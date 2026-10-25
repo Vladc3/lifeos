@@ -48,4 +48,12 @@ Lokální desktop app (Tauri 2 + React + TypeScript + SQLite) pro návyky a osob
 
 ## Uživatel se učí
 
-Uživatel je začátečník a projekt je jeho učební projekt. Po každé featuře stručně vysvětli 3 nejdůležitější věci, které jsi použil, a navrhni zápis do `docs/learning.md`.
+Uživatel je začátečník a projekt je jeho učební projekt. Učí se líp stavět s AI: rozumět kódu, který AI píše, mít lepší workflow a dodávat rychleji.
+
+- Po každé featuře stručně vysvětli 3 nejdůležitější věci, které jsi použil, a navrhni zápis do `docs/learning.md`.
+- U netriviálního kódu ukaž, kde je jádro logiky (`soubor:řádek`), aby si ho uživatel mohl přečíst sám.
+- Když se v workflow něco pokazí nebo zdrží (špatný plán, test, který nic neověřil), řekni to a navrhni, jak tomu příště předejít.
+
+## Veřejné repo
+
+Repo je veřejné (kap. 11 PRD). Nikdy necommituj `.db`, zálohy ani reálná data. Screenshoty jen z demo dat. README je anglicky, ostatní dokumenty a commity česky.

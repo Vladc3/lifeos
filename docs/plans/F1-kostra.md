@@ -128,3 +128,16 @@ gh pr checks        # ubuntu i windows zelené
 
 1. Identifier `io.github.vladc3.lifeos`: schváleno.
 2. Windows: vlastník má Windows počítač. Ve fázi 6 proběhne K5 a K6 ručně i na Windows (zaostření okna, Run klíč autostartu).
+
+## Odchylky při implementaci
+
+| Co | Proč |
+| --- | --- |
+| Rust nainstalovaný přes `mise use -g rust@stable` místo pacmanu | Nevyžaduje sudo, stejný výsledek (rustup, stable 1.99.1) |
+| Jeden společný placeholder v `App.tsx` místo 6 souborů v `src/features/<modul>/` | Prázdné soubory „na později“ nic nepřinesou. Vlastní složku má zatím jen Nastavení (přepínač autostartu) |
+| Nová dev závislost `@types/node` | Typy pro `node:sqlite`, `node:fs`, `node:crypto` v testech. Do kódu app neprosakují (`"types": []`, odkaz jen v testech) |
+| CI `push` jen na `main` | PR pokrývá `pull_request`, jinak běžel každý job dvakrát |
+| Texty menu v liště („Otevřít“, „Ukončit“) jsou v `src-tauri/src/lib.rs`, ne v `cs.ts` | Nativní menu staví Rust. Ve fázi 2 (s „Nový výdaj“) se popisky budou předávat z `cs.ts`, id `open`/`quit` zůstanou. Výjimka z NFR-09 jen pro fázi 1 |
+| `openDb()` cachuje promise (test `src/db/index.test.ts`) | Dev-team review: StrictMode volal `Database.load` dvakrát, každé volání otevře nový pool a migruje jen první |
+| Navíc test `src/db/dataSeparation.test.ts` | Dev-team review (QA): PUB-03 hlídá stroj, ne jen jednorázová ruční kontrola |
+| `<link rel="icon" href="data:,">` v `index.html` | Bez něj 404 na `/favicon.ico` v konzoli |

@@ -8,7 +8,7 @@ export default function App() {
   const [active, setActive] = useState<ModuleId>("today");
   const [dbError, setDbError] = useState<string | null>(null);
 
-  // ponytail: the Db instance is not shared yet; phase 2 (FIN-01) adds a context for it.
+  // openDb() is cached, so later screens get the same instance by calling it again.
   useEffect(() => {
     openDb().catch((error: unknown) => setDbError(String(error)));
   }, []);

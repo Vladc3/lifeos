@@ -1,6 +1,6 @@
 # Life OS – PRD
 
-Verze 0.5 · 2026-10-25 · vlastník: Vova
+Verze 0.6 · 2026-10-26 · vlastník: Vova
 
 ## 1. Přehled
 
@@ -97,14 +97,15 @@ App se používá ráno (plán dne, kolik můžu utratit) a večer (dopsat návy
 | --- | --- | --- |
 | FIN-01 | Rychlý zápis transakce (Ctrl+N kdekoli v app). Pole: částka, typ (výdaj / příjem), kategorie, datum (výchozí dnes), poznámka | Fokus je hned na částce, Enter uloží. Nabízí se jen kategorie zvoleného typu, jdou vybrat klávesnicí. Částka > 0, max 2 desetinná místa, desetinná čárka i tečka |
 | FIN-02 | Seznam transakcí | Filtr podle měsíce a kategorie, úprava, smazání s potvrzením |
-| FIN-03 | Správa kategorií | Přidat, upravit (název, ikona, barva, typ výdaj/příjem, měsíční limit jen u výdajových), archivovat. Kategorie s transakcemi nejde smazat, jen archivovat |
-| FIN-04 | Rozpočet měsíce | Celkový rozpočet + progress bar na každou kategorii s limitem > 0: zelená do 80 %, oranžová 80–100 %, červená nad 100 % |
+| FIN-03 | Správa kategorií | Přidat, upravit (název, ikona, barva, typ výdaj/příjem, měsíční limit jen u výdajových), archivovat. Kategorie s transakcemi nejde smazat, jen archivovat. Změna typu kategorie změní i typ jejích transakcí, předtím se app zeptá s počtem dotčených transakcí |
+| FIN-04 | Rozpočet měsíce | Celkový rozpočet (bar všech výdajů měsíce proti `settings.monthly_budget`, bez nastaveného rozpočtu odkaz do Nastavení) + progress bar na každou kategorii s limitem > 0: zelená do 80 %, oranžová 80–100 %, červená nad 100 % |
 | FIN-05 | Opakované platby | Definice: název, částka, kategorie, den v měsíci. Při spuštění app se vytvoří chybějící transakce za všechny měsíce od vytvoření platby až do dneška (CALC-11) |
 | FIN-06 | Vlastní finanční cíle, 3 typy: spořicí, limitový, návykový | Libovolný počet. Přidat, upravit, pozastavit, archivovat. Validace podle typu (spořicí: částka + termín v budoucnu, limitový: kategorie + částka, návykový: počet dní 1–31) |
 | FIN-07 | Vklady do spořicího cíle | Vklad není výdaj. Snižuje zbývající příspěvek měsíce (CALC-07, CALC-08). Po dosažení cílové částky se cíl označí jako splněný |
 | FIN-08 | Priorita cílů | Řazení přetažením. Když součet příspěvků přesáhne volné peníze (B − S v CALC-07), zobrazí se, které cíle se nevejdou |
 | FIN-09 | Měsíční přehled | Graf příjmů a výdajů po dnech, rozdělení výdajů podle kategorií, součty měsíce |
 | FIN-10 | Denní limit | Výpočet podle CALC-07, zobrazení v DNE-03 |
+| FIN-11 | Grafický přehled financí | Jedna obrazovka: útrata měsíce proti rozpočtu + spořicí cíle a jejich plnění. Investice podle Q9. Přesné kritérium doplní plán fáze 4 |
 
 ## 6. Výpočty a pravidla
 
@@ -144,7 +145,7 @@ SQLite, jeden soubor `life-os.db` v Tauri app config dir (NFR-03). Vývojová a 
 | daily\_tasks | date, title, done, position | Max 3 na date |
 | weekly\_reviews | week\_start, went\_well, went\_badly, change\_next | UNIQUE(week\_start) |
 | categories | name, icon, color, kind (`expense` / `income`), monthly\_budget, archived\_at | monthly\_budget 0 = bez limitu, u `income` vždy 0 |
-| transactions | date, amount, type (`income` / `expense`), category\_id, note, recurring\_id | amount > 0, type = kind kategorie |
+| transactions | date, amount, category\_id, note, recurring\_id (od fáze 4, FIN-05) | amount > 0. Typ (příjem / výdaj) se neukládá, je to `kind` kategorie (JOIN) |
 | recurring | name, amount, category\_id, day\_of\_month, archived\_at |  |
 | recurring\_runs | recurring\_id, month (`YYYY-MM`), transaction\_id | UNIQUE(recurring\_id, month), CALC-11 |
 | goals | type (`saving` / `limit` / `no_spend`), name, icon, target\_amount, target\_days, category\_id, deadline, priority, paused\_at, achieved\_at, archived\_at | Pole podle typu, viz FIN-06 |
@@ -231,9 +232,9 @@ Každá fáze končí spustitelnou verzí, zelenými testy a tagem verze.
 | Fáze | Verze | Obsah (ID) |
 | --- | --- | --- |
 | 1 Kostra | 0.1.0 | Tauri + React projekt, sidebar, design tokeny, SQLite + migrační systém, tabulka settings, CI s lintem a testy, NFR-09, SYS-01 (bez Nového výdaje a časovače), SYS-02, SYS-03, PUB-01 až PUB-03. Plán: `docs/plans/F1-kostra.md` |
-| 2 Finance základ | 0.2.0 | FIN-01 až FIN-04, výchozí kategorie, PUB-04 |
+| 2 Finance základ | 0.2.0 | FIN-01 až FIN-04, výchozí kategorie, PUB-04 (transakce a kategorie), SYS-01 Nový výdaj. Plán: `docs/plans/F2-finance.md` |
 | 3 Návyky | 0.3.0 | HAB-01 až HAB-06, HAB-09, CALC-01 až CALC-06 |
-| 4 Finance a cíle | 0.4.0 | FIN-05 až FIN-10, CALC-07 až CALC-11 |
+| 4 Finance a cíle | 0.4.0 | FIN-05 až FIN-11, CALC-07 až CALC-11 |
 | 5 Dnes | 0.5.0 | ONB-01 až ONB-05, DNE-01 až DNE-06, HAB-07, HAB-10, CALC-12 |
 | 6 Dokončení | 1.0.0 | HAB-08, REV-01 až REV-03, NFR-05, NFR-06, release build Windows + Linux |
 
@@ -262,7 +263,7 @@ Repo je veřejné od prvního commitu. Veřejný je kód a postup, nikdy vlastn�
 | PUB-01 | Veřejný GitHub repozitář s licencí MIT a README | README: co app dělá, screenshot, jak ji spustit na Windows a Linuxu |
 | PUB-02 | Do repa se nikdy nedostanou reálná data | `.gitignore` obsahuje `*.db`, `*.db-*` a zálohy. Commity používají GitHub noreply e-mail. Testové fixtures jsou smyšlené |
 | PUB-03 | Vývoj odděleně od reálných dat | Výchozí `tauri.conf.json` je vývojový (identifier `io.github.vladc3.lifeos.dev`, „Life OS Dev“), takže `npm run tauri dev` i obyčejný build používají vlastní složku. Reálnou verzi (`io.github.vladc3.lifeos`, „Life OS“) postaví jen `npm run build:release`. Vývoj ani demo data nikdy nesahají na reálnou DB |
-| PUB-04 | Demo data pro screenshoty | Příkaz naplní dev DB smyšlenými transakcemi a návyky. Screenshoty v README a příspěvcích jsou jen z demo dat |
+| PUB-04 | Demo data pro screenshoty | Příkaz naplní dev DB smyšlenými transakcemi a návyky (návyky od fáze 3). Screenshoty v README a příspěvcích jsou jen z demo dat |
 | PUB-05 | Příspěvek o postupu za každou fázi | Při tagu verze: release notes z Conventional Commits + krátký příspěvek (co je hotové, co jsem se naučil, screenshot) |
 
 ## 12. Otevřené otázky
@@ -273,10 +274,21 @@ Rozhodnout před fází, ve které se používají. Do té doby se neimplementuj
 | --- | --- | --- | --- |
 | Q6 | Jak dělat atomické zápisy (CALC-11, NFR-05)? tauri-plugin-sql má pool spojení, takže `BEGIN`/`COMMIT` v oddělených `execute()` nejsou bezpečné | 4 | Rozhodnout v plánu fáze 4 (např. Rust příkaz pro dávku) |
 | Q7 | Kde běží časovač check-inů (HAB-07)? Skrytý webview může brzdit JS časovače | 5 | Rozhodnout v plánu fáze 5 (JS vs. Rust) |
+| Q8 | Jak zapsat vratku (refundace nákupu)? Zatím jen jako příjem, `amount > 0` platí | 4 | Rozhodnout před FIN-09 a CALC-07 |
+| Q9 | Investice: co evidovat (ruční hodnota, nebo vklady), jak je ukázat ve FIN-11. Rozšíří kap. 2 | 4 | Rozhodnout v plánu fáze 4 |
 
 Vyřešené ve v0.5: Q4 SQL testy ve Vitest proti `node:sqlite` v paměti se stejnými migracemi (plán fáze 1, D1).
 
 Vyřešené ve v0.4: Q1 `rest` jen dopředu (CALC-02), Q2 `min_value` (CALC-02), Q3 fáze u `weekly_count` (CALC-05), Q5 review kdykoli zpětně (REV-01).
+
+## Změny ve verzi 0.6
+
+Podle schváleného plánu fáze 2 (`docs/plans/F2-finance.md`, B1–B7):
+
+- Kap. 7: `transactions` bez sloupce `type`, typ je `kind` kategorie. `recurring_id` až s FIN-05.
+- FIN-03: změna typu kategorie změní i její transakce. FIN-04: co je celkový rozpočet.
+- Nový FIN-11 (grafický přehled financí, fáze 4). Nové otázky Q8 (vratky) a Q9 (investice).
+- PUB-04 a SYS-01 po fázích, popisky menu v liště zůstávají v Rustu až do angličtiny (výjimka z NFR-09).
 
 ## Změny ve verzi 0.5
 

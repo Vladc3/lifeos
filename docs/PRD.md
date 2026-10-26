@@ -1,6 +1,6 @@
 # Life OS – PRD
 
-Verze 0.4 · 2026-10-25 · vlastník: Vova
+Verze 0.5 · 2026-10-25 · vlastník: Vova
 
 ## 1. Přehled
 
@@ -134,7 +134,7 @@ Všechny výpočty jsou čisté funkce v `src/lib`, každé pravidlo má vlastn�
 
 ## 7. Datový model
 
-SQLite, jeden soubor `life-os.db` v Tauri app data dir (vývojová verze používá `life-os-dev.db`, viz PUB-03). Každá tabulka má `id INTEGER PRIMARY KEY` a `created_at`. Částky jsou `INTEGER` v haléřích, data `TEXT` ve formátu `YYYY-MM-DD`.
+SQLite, jeden soubor `life-os.db` v Tauri app config dir (NFR-03). Vývojová a reálná verze mají různý identifier, a tedy různou složku (PUB-03). Každá tabulka má `id INTEGER PRIMARY KEY` a `created_at`. Částky jsou `INTEGER` v haléřích, data `TEXT` ve formátu `YYYY-MM-DD`.
 
 | Tabulka | Sloupce | Poznámka |
 | --- | --- | --- |
@@ -149,11 +149,11 @@ SQLite, jeden soubor `life-os.db` v Tauri app data dir (vývojová verze použí
 | recurring\_runs | recurring\_id, month (`YYYY-MM`), transaction\_id | UNIQUE(recurring\_id, month), CALC-11 |
 | goals | type (`saving` / `limit` / `no_spend`), name, icon, target\_amount, target\_days, category\_id, deadline, priority, paused\_at, achieved\_at, archived\_at | Pole podle typu, viz FIN-06 |
 | goal\_deposits | goal\_id, date, amount | Jen pro `saving` |
-| settings | key, value | onboarding\_done, monthly\_budget (haléře), pin\_hash, autostart, checkin\_morning a checkin\_evening (`HH:MM`, prázdné = vypnuto) a další |
+| settings | key, value | onboarding\_done, monthly\_budget (haléře), pin\_hash, checkin\_morning a checkin\_evening (`HH:MM`, prázdné = vypnuto) a další |
 
 ## 8. UI a design
 
-**Navigace:** levý sidebar s moduly Dnes, Návyky, Finance, Cíle, Review, Nastavení. Okno má minimálně 1024 × 680 px a layout se přizpůsobí tiling oknům na Hyprlandu.
+**Navigace:** levý sidebar s moduly Dnes, Návyky, Finance, Cíle, Review, Nastavení. Layout je navržený pro okno od 1024 × 680 px, ale okno minimální velikost nevynucuje: tiling na Hyprlandu by jinak obsah roztáhl a rozmazal. Menší okno nesmí rozbít layout.
 
 | Obrazovka | Obsah |
 | --- | --- |
@@ -195,15 +195,16 @@ Velká čísla (procenta, částky) mají 32–48 px. Žádné tapety ani obráz
 | --- | --- |
 | NFR-01 | Windows 10/11 a Linux (Arch / Omarchy, Hyprland, Wayland). Stejné chování na obou |
 | NFR-02 | Plně offline. Žádná síťová volání, žádná telemetrie |
-| NFR-03 | Data jen v Tauri app data dir (Linux `~/.local/share/<app>`, Windows `%APPDATA%\<app>`), žádné cesty natvrdo |
+| NFR-03 | Data jen v Tauri app config dir, kam DB ukládá tauri-plugin-sql (Linux `~/.config/<identifier>`, Windows `%APPDATA%\<identifier>`), žádné cesty natvrdo |
 | NFR-04 | Start aplikace do 2 s, zápis transakce nebo návyku do 5 s od otevření formuláře |
 | NFR-05 | Záloha: Nastavení → Exportovat zálohu (`VACUUM INTO` do zvolené složky, ne kopie otevřeného souboru) a Obnovit ze zálohy |
 | NFR-06 | Volitelný PIN zámek při spuštění. Ukládá se jen hash PINu (Argon2 nebo bcrypt) v settings, nikdy plain text. PIN je zámek obrazovky, ne šifrování. DB se nešifruje (kap. 2) |
 | NFR-07 | Veškeré SQL parametrizované, vstupy validované na hranici UI → DB |
 | NFR-08 | Ovládatelné klávesnicí, viditelný fokus |
 | NFR-09 | Všechny texty UI v jednom souboru (`src/i18n/cs.ts`), žádné texty natvrdo v komponentách. Čísla, částky a data formátuje `Intl` s `cs-CZ`. Po 1.0 tak jde přidat angličtina bez přepisování komponent |
-| SYS-01 | Běh v systémové liště (tray). Zavření okna app skryje do lišty, nekončí ji. Menu lišty: Otevřít, Nový výdaj, Ukončit. Časovač check-inů (HAB-07) běží, i když je okno skryté |
-| SYS-02 | Spuštění po přihlášení (autostart), zapíná se v ONB-05 nebo v Nastavení. Po spuštění se otevře Dnes |
+| SYS-01 | Běh v systémové liště (tray). Zavření okna app skryje do lišty, nekončí ji. Menu lišty: Otevřít, Nový výdaj (od fáze 2, s FIN-01), Ukončit. Časovač check-inů (HAB-07, fáze 5) běží, i když je okno skryté |
+| SYS-02 | Spuštění po přihlášení (autostart), zapíná se v ONB-05 nebo v Nastavení. Po spuštění se otevře Dnes. Zdroj pravdy je OS, stav se neukládá do settings |
+| SYS-03 | Běží jen jedna instance. Druhé spuštění ukáže okno první instance a skončí (tauri-plugin-sql nemá busy_timeout, dva procesy nad jednou DB by dostaly `SQLITE_BUSY`) |
 
 **Tech stack**
 
@@ -214,6 +215,7 @@ Velká čísla (procenta, částky) mají 32–48 px. Žádné tapety ani obráz
 | Grafy | Recharts |
 | Data | SQLite přes tauri-plugin-sql, SQL migrace |
 | Lišta | Tray ikona z jádra Tauri 2 (feature `tray-icon`) |
+| Jedna instance | tauri-plugin-single-instance (SYS-03) |
 | Notifikace | tauri-plugin-notification, jen okamžité odeslání. Na desktopu plánování neumí, čas hlídá vlastní časovač v app |
 | Autostart | tauri-plugin-autostart (nová závislost, zdůvodnit v plánu fáze 1) |
 | Testy | Vitest (TS), cargo test (Rust) |
@@ -228,7 +230,7 @@ Každá fáze končí spustitelnou verzí, zelenými testy a tagem verze.
 
 | Fáze | Verze | Obsah (ID) |
 | --- | --- | --- |
-| 1 Kostra | 0.1.0 | Tauri + React projekt, sidebar, design tokeny, SQLite + migrační systém, tabulka settings, CI s lintem a testy, NFR-09, SYS-01, SYS-02, PUB-01 až PUB-03 |
+| 1 Kostra | 0.1.0 | Tauri + React projekt, sidebar, design tokeny, SQLite + migrační systém, tabulka settings, CI s lintem a testy, NFR-09, SYS-01 (bez Nového výdaje a časovače), SYS-02, SYS-03, PUB-01 až PUB-03. Plán: `docs/plans/F1-kostra.md` |
 | 2 Finance základ | 0.2.0 | FIN-01 až FIN-04, výchozí kategorie, PUB-04 |
 | 3 Návyky | 0.3.0 | HAB-01 až HAB-06, HAB-09, CALC-01 až CALC-06 |
 | 4 Finance a cíle | 0.4.0 | FIN-05 až FIN-10, CALC-07 až CALC-11 |
@@ -259,7 +261,7 @@ Repo je veřejné od prvního commitu. Veřejný je kód a postup, nikdy vlastn�
 | --- | --- | --- |
 | PUB-01 | Veřejný GitHub repozitář s licencí MIT a README | README: co app dělá, screenshot, jak ji spustit na Windows a Linuxu |
 | PUB-02 | Do repa se nikdy nedostanou reálná data | `.gitignore` obsahuje `*.db`, `*.db-*` a zálohy. Commity používají GitHub noreply e-mail. Testové fixtures jsou smyšlené |
-| PUB-03 | Vývoj odděleně od reálných dat | `npm run tauri dev` používá `life-os-dev.db`, release build `life-os.db`. Vývoj ani demo data nikdy nesahají na reálnou DB |
+| PUB-03 | Vývoj odděleně od reálných dat | Výchozí `tauri.conf.json` je vývojový (identifier `io.github.vladc3.lifeos.dev`, „Life OS Dev“), takže `npm run tauri dev` i obyčejný build používají vlastní složku. Reálnou verzi (`io.github.vladc3.lifeos`, „Life OS“) postaví jen `npm run build:release`. Vývoj ani demo data nikdy nesahají na reálnou DB |
 | PUB-04 | Demo data pro screenshoty | Příkaz naplní dev DB smyšlenými transakcemi a návyky. Screenshoty v README a příspěvcích jsou jen z demo dat |
 | PUB-05 | Příspěvek o postupu za každou fázi | Při tagu verze: release notes z Conventional Commits + krátký příspěvek (co je hotové, co jsem se naučil, screenshot) |
 
@@ -269,9 +271,21 @@ Rozhodnout před fází, ve které se používají. Do té doby se neimplementuj
 
 | # | Otázka | Fáze | Návrh |
 | --- | --- | --- | --- |
-| Q4 | Jak testovat SQL, migrace a UNIQUE omezení? Vitest nespustí tauri-plugin-sql bez Tauri runtime | 1 | Rozhodnout v plánu fáze 1 (např. migrace a omezení testovat v `cargo test` proti SQLite v paměti) |
+| Q6 | Jak dělat atomické zápisy (CALC-11, NFR-05)? tauri-plugin-sql má pool spojení, takže `BEGIN`/`COMMIT` v oddělených `execute()` nejsou bezpečné | 4 | Rozhodnout v plánu fáze 4 (např. Rust příkaz pro dávku) |
+| Q7 | Kde běží časovač check-inů (HAB-07)? Skrytý webview může brzdit JS časovače | 5 | Rozhodnout v plánu fáze 5 (JS vs. Rust) |
+
+Vyřešené ve v0.5: Q4 SQL testy ve Vitest proti `node:sqlite` v paměti se stejnými migracemi (plán fáze 1, D1).
 
 Vyřešené ve v0.4: Q1 `rest` jen dopředu (CALC-02), Q2 `min_value` (CALC-02), Q3 fáze u `weekly_count` (CALC-05), Q5 review kdykoli zpětně (REV-01).
+
+## Změny ve verzi 0.5
+
+Podle schváleného plánu fáze 1 (`docs/plans/F1-kostra.md`, A1–A6):
+
+- NFR-03: DB je v app config dir, protože tam ji ukládá tauri-plugin-sql.
+- PUB-03: oddělení dev a reálných dat přes identifier místo `life-os-dev.db`.
+- SYS-02 bez klíče `settings.autostart`. Nový SYS-03: jedna instance.
+- SYS-01 rozdělený po fázích. Nové otázky Q6 (transakce) a Q7 (časovač), Q4 vyřešená.
 
 ## Změny ve verzi 0.4
 

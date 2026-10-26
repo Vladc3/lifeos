@@ -11,9 +11,10 @@ Lokální desktop app (Tauri 2 + React + TypeScript + SQLite) pro návyky a osob
 
 ## Příkazy
 
-- `npm run tauri dev` – spuštění aplikace
+- `npm run tauri dev` – spuštění aplikace (vývojová data, identifier `….dev`)
+- `npm run build:release` – verze pro reálné používání (reálná data)
 - `npm test` – Vitest
-- `npm run lint` – ESLint + Prettier check
+- `npm run lint` – tsc + ESLint + Prettier check
 - `cd src-tauri && cargo test && cargo clippy -- -D warnings && cargo fmt --check`
 
 ## Struktura

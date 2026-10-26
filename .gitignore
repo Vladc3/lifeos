@@ -11,3 +11,12 @@ src-tauri/target/
 src-tauri/gen/
 .env*
 .DS_Store
+
+# Vite / editor (from create-tauri-app)
+logs
+*.log
+dist-ssr
+*.local
+.vscode/*
+!.vscode/extensions.json
+.idea

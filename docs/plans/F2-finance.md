@@ -33,6 +33,7 @@ Zápis příjmů a výdajů do 5 s odkudkoli (Ctrl+N, „Nový výdaj“ v lišt
 | Na Linuxu se menu lišty otevírá pravým klikem (touchpad: dvěma prsty) | fáze 1, K5 |
 | `toISOString()` dává datum v UTC: v 0:30 v Česku vrátí včerejšek | dev-team (Dev, QA) |
 | Pro fázi 4: sqlx pouští migraci v transakci, kde `PRAGMA foreign_keys=OFF` nic neudělá. Přestavba tabulky pak potřebuje `PRAGMA defer_foreign_keys=ON` | dev-team (Architect), ověřit při plánu fáze 4 |
+| T1: WebKitGTK 2.52.6 umí `<input type="date">` i `<dialog>`, po `showModal()` jde fokus do pole částky. Enter odešle formulář, Ctrl+N (`KeyN`) se chytí a při otevřeném dialogu se ignoruje, `<select>` a výběr data fungují i na Hyprlandu. Záloha s textovým polem a `parseDate` není potřeba | spike v MiniBrowseru (stejný engine jako Tauri na Linuxu), automatická část přes titulek okna + ruční ověření vlastníkem. Esc při rozbaleném `<select>` se znovu ověří v K3 |
 
 ## Změny PRD ke schválení (zapíšou se do PRD v0.6)
 

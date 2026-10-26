@@ -48,7 +48,7 @@ export const cs = {
       inUse: "Kategorie má transakce, smazat ji nejde. Můžeš ji archivovat.",
     },
     kindChange: (count: number) =>
-      `Změní se typ i u ${count} ${transactionsWord(count)} této kategorie. Pokračovat?`,
+      `Změní se i ${count} ${transactionsWord(count)} této kategorie. Pokračovat?`,
     kindChangeConfirm: "Pokračovat",
   },
   money: {

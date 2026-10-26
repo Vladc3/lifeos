@@ -56,7 +56,10 @@ export default function App() {
   useEffect(() => {
     const take = () =>
       invoke<boolean>("take_new_expense").then(
-        (requested) => requested && setDialog({ mode: "new", kind: "expense" }),
+        (requested) =>
+          requested &&
+          // Never replace an open dialog: an edit would turn into a duplicate.
+          setDialog((open) => open ?? { mode: "new", kind: "expense" }),
         () => undefined, // not in Tauri (npm run dev in a browser)
       );
     const unlisten = listen("new-expense", () => void take());
@@ -123,6 +126,7 @@ export default function App() {
       </main>
       {dialog && db && (
         <TransactionDialog
+          key={dialog.mode === "edit" ? `edit-${dialog.transaction.id}` : "new"}
           db={db}
           state={dialog}
           today={today}

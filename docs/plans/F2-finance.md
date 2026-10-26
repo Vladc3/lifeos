@@ -100,7 +100,7 @@ Texty do `cs.ts` jsou součástí každého úkolu (NFR-09).
 | K2 | Chybné částky | Ctrl+N, postupně `0`, `-5`, `1,234`, `1.234`, `abc`, prázdné → Enter | Pokaždé hláška „Zadej částku větší než 0, nejvýš 2 desetinná místa“ (text z `cs.ts`), dialog zůstane otevřený, ve Finance nic nepřibude |
 | K3 | Klávesnice v dialogu | Ctrl+N → Tab přes všechna pole → šipkou přepnout typ na Příjem → v kategoriích šipkami → Esc | Fokus je vidět na každém poli. U Příjmu jsou v nabídce jen „Práce / zakázky“ a „Ostatní příjmy“. Esc zavře, nic se neuloží |
 | K4 | Seznam a úprava | Finance: ‹ na minulý měsíc a zpět, filtr „Jídlo“, u transakce Upravit → částka `99` → Enter; Smazat → Zrušit; Smazat → Opravdu smazat | Seznam ukazuje jen zvolený měsíc a kategorii, úprava ukáže 99 Kč, po Zrušit transakce zůstane, po potvrzení zmizí |
-| K5 | Rozpočet | Nastavení: rozpočet 7 000 Kč, Jídlo limit 1 000 Kč. Zapsat výdaje v Jídle tak, aby součet byl 700, pak 900, pak 1 100 Kč | Bar Jídla zelený / oranžový / červený. Kategorie s limitem 0 bar nemají. Celkový bar podle O1 |
+| K5 | Rozpočet | Nastavení: celkový rozpočet 7 000 Kč. Přidat kategorii „Káva ☕“ s limitem 1 000 Kč (nová, takže v ní nejsou demo data). Ctrl+N: 700 Kč v Kávě → Finance; pak 200 Kč → Finance; pak 200 Kč → Finance | Bar Kávy postupně zelený (700 / 1 000), oranžový (900), červený (1 100). Kategorie s limitem 0 bar nemají. Celkový bar = všechny výdaje měsíce z 7 000 Kč (O1) |
 | K6 | Kategorie | Nastavení: přidat „Káva ☕“, přejmenovat, archivovat; Ctrl+N; obnovit. Smazat „Jídlo“ (má transakce). Změnit typ kategorie s transakcemi | Archivovaná v dialogu chybí, u jejích transakcí v seznamu zůstane název. Smazat Jídlo nejde, nabídne Archivovat. Změna typu se zeptá na počet transakcí (O2) |
 | K7 | Nový výdaj z lišty | Zavřít okno křížkem → menu lišty → Nový výdaj | Okno se ukáže s otevřeným dialogem, typ Výdaj (když fokus nepřejde do okna, stačí klik, Hyprland, viz fáze 1) |
 | K8 | Demo data | 1) `stat -c %Y $REAL/life-os.db $REAL/life-os.db-wal` 2) ukončit app přes lištu → `npm run demo` 3) znovu `stat` 4) `npm run tauri dev` | Skript vypíše počet vložených transakcí a „Restartuj app“. Časy v `REAL` se nezmění. Ve Finance jsou 3 měsíce dat a barevné bary |
@@ -108,6 +108,7 @@ Texty do `cs.ts` jsou součástí každého úkolu (NFR-09).
 | K10 | Regrese fáze 1: lišta a jedna instance | Zavřít okno → menu lišty Otevřít → spustit app znovu z druhého terminálu → menu lišty Ukončit | Okno zpět, `pgrep -xc life-os` pořád 1, po Ukončit 0 |
 | K11 | Regrese fáze 1: zkratky | Ctrl+1 až Ctrl+6 bez dialogu; s otevřeným dialogem Ctrl+2 | Bez dialogu přepínají moduly. S dialogem se nic nestane |
 | K12 | Nový výdaj hned po startu | Spustit app a během první sekundy kliknout v liště Nový výdaj | Dialog se otevře (E8, příznak) |
+| K13 | Úprava a lišta | Finance → u transakce Upravit (dialog zůstane otevřený) → menu lišty (pravý klik) → Nový výdaj → v dialogu Uložit → `sqlite3 $DEV/life-os.db 'select count(*) from transactions'` před a po | Dialog úpravy zůstane, jak byl, počet transakcí se nezmění (žádný duplikát) |
 
 ## Validace (Definice hotovo)
 
@@ -139,6 +140,7 @@ gh pr checks        # ubuntu i windows zelené
 - [ ] SYS-01 „Nový výdaj“ v liště, i hned po startu (K7, K12)
 - [ ] PUB-04 demo data jen v dev DB (K8)
 - [ ] Regrese fáze 1 v pořádku (K10, K11)
+- [ ] Úprava + lišta bez duplikátu (K13)
 - [ ] CI zelené, PRD v0.6 s B1–B7, tag v0.2.0
 
 ## Odchylky při implementaci
@@ -155,3 +157,5 @@ gh pr checks        # ubuntu i windows zelené
 | Ověření UI z části automaticky | `wtype` + `grim` na neviditelném monitoru (`hyprctl output create headless`) a kliknutí v liště přes D-Bus. Ověřeno: K1 (bez Ctrl+N), K2, K3 (bez Esc u selectu), K7, K8, K12 a screenshot z demo dat. `wtype` má vlastní rozložení kláves, takže `event.code` neodpovídá (Ctrl+N, Ctrl+1–6 ověří vlastník ručně) |
 | Formát data v poli podle jazyka systému | WebKitGTK bere locale z OS (`LANG=en_US` → `10/26/2026`), `lang="cs"` nepomůže. Ukládá se vždy `YYYY-MM-DD`, seznam ukazuje `26. 10. 2026`. Zapsáno do README |
 | Commit `19b65f3` prošel s chybou lintu | `npm run lint \| tail` schoval návratový kód. Opraveno v `eef423c`, příkazy od té doby se `set -o pipefail` |
+| Dev-team review hotové fáze: oprava duplikátu | Klik „Nový výdaj“ v liště při otevřené úpravě přepsal stav dialogu na nový zápis, komponenta se nepřemontovala a Uložit vytvořil duplikát. Lišta teď otevřený dialog nenahradí a dialog má `key`. Dále: návrat typu při úpravě vrátí původní kategorii, chyba načtení zmizí po úspěšném načtení, text „Změní se i N transakce/transakcí“ (test `src/i18n/cs.test.ts`), K5 na vlastní kategorii (demo data nerozhodí součty), nová K13 |
+| Pro fázi 4 (z review, migrace 0002 se neupravuje) | Tabulky nejsou STRICT: `amount` by přijal i `1.5`. Haléře teď hlídá `parseAmount` a repozitáře dostávají jen celá čísla. Migrace 0004 ve fázi 4 přidá indexy `transactions(date)` a `(category_id)` pro CALC-07 a rozhodne o kontrole `typeof(amount) = 'integer'` (přestavba tabulky přes `defer_foreign_keys`) |

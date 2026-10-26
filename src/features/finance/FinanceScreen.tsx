@@ -81,13 +81,14 @@ export function FinanceScreen(props: Props) {
       getSetting(db, "monthly_budget"),
     ]).then(
       ([categories, transactions, expenses, budget]) => {
-        if (current)
-          setData({
-            categories,
-            transactions,
-            expenses,
-            budget: Number(budget) || 0,
-          });
+        if (!current) return;
+        setError(null);
+        setData({
+          categories,
+          transactions,
+          expenses,
+          budget: Number(budget) || 0,
+        });
       },
       () => current && setError(cs.loadError),
     );

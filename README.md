@@ -33,7 +33,7 @@ Requirements: Node ≥ 22.13 (see `.nvmrc`), Rust stable, and the [Tauri prerequ
 npm ci
 npm run tauri dev       # development build, uses its own data folder
 npm run build:release   # the version for real use: src-tauri/target/release/life-os
-npm run demo            # fills the development database with made-up data (never the real one)
+npm run demo            # replaces all dev transactions and limits with made-up data (never touches the real database)
 npm run lint && npm test
 ```
 

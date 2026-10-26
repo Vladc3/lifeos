@@ -143,7 +143,7 @@ export function TransactionDialog({
                 type="radio"
                 name="kind"
                 checked={values.kind === kind}
-                onChange={() => set({ kind, categoryId: "" })}
+                onChange={() => set({ kind })}
                 className="accent-text"
               />
               {cs.money[kind]}

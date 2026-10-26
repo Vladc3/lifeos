@@ -1,20 +1,47 @@
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
 import { openDb } from "./db";
+import type { Db } from "./db/types";
+import { FinanceScreen } from "./features/finance/FinanceScreen";
+import {
+  TransactionDialog,
+  type TransactionDialogState,
+} from "./features/finance/TransactionDialog";
 import { SettingsScreen } from "./features/settings/SettingsScreen";
 import { cs } from "./i18n/cs";
-import { MODULES, moduleForShortcut, type ModuleId } from "./lib/shortcuts";
+import { todayLocal } from "./lib/dates";
+import {
+  MODULES,
+  isNewTransactionShortcut,
+  moduleForShortcut,
+  type ModuleId,
+} from "./lib/shortcuts";
 
 export default function App() {
   const [active, setActive] = useState<ModuleId>("today");
+  const [db, setDb] = useState<Db | null>(null);
   const [dbError, setDbError] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<TransactionDialogState | null>(null);
+  // Bumped after every save, so screens reload their data (plan F2, E9).
+  const [dataVersion, setDataVersion] = useState(0);
+  // Read on every render: a window left open overnight gets the new day.
+  const today = todayLocal(new Date());
 
-  // openDb() is cached, so later screens get the same instance by calling it again.
+  // openDb() is cached, so every caller gets the same instance.
   useEffect(() => {
-    openDb().catch((error: unknown) => setDbError(String(error)));
+    openDb().then(setDb, (error: unknown) => setDbError(String(error)));
   }, []);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
+      // E9: no shortcuts while any dialog is open (transaction or category).
+      if (document.querySelector("dialog[open]")) return;
+      if (isNewTransactionShortcut(event)) {
+        event.preventDefault();
+        setDialog({ mode: "new", kind: "expense" });
+        return;
+      }
       const target = moduleForShortcut(event);
       if (!target) return;
       event.preventDefault();
@@ -23,6 +50,28 @@ export default function App() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  // SYS-01 "Nový výdaj" from the tray (plan F2, E8). Rust stores the click,
+  // so taking it after listen() also catches a click from before the app loaded.
+  useEffect(() => {
+    const take = () =>
+      invoke<boolean>("take_new_expense").then(
+        (requested) =>
+          requested &&
+          // Never replace an open dialog: an edit would turn into a duplicate.
+          setDialog((open) => open ?? { mode: "new", kind: "expense" }),
+        () => undefined, // not in Tauri (npm run dev in a browser)
+      );
+    const unlisten = listen("new-expense", () => void take());
+    unlisten.then(take, () => undefined);
+    return () =>
+      void unlisten.then(
+        (stop) => stop(),
+        () => undefined,
+      );
+  }, []);
+
+  const changed = () => setDataVersion((v) => v + 1);
 
   return (
     <div className="grid h-screen grid-cols-[14rem_1fr]">
@@ -57,12 +106,37 @@ export default function App() {
           </div>
         )}
         <h1 className="mb-6 text-4xl font-semibold">{cs.modules[active]}</h1>
-        {active === "settings" ? (
-          <SettingsScreen />
+        {active === "finance" ? (
+          db && (
+            <FinanceScreen
+              db={db}
+              today={today}
+              dataVersion={dataVersion}
+              onNew={() => setDialog({ mode: "new", kind: "expense" })}
+              onEdit={(transaction) => setDialog({ mode: "edit", transaction })}
+              onChanged={changed}
+              onOpenSettings={() => setActive("settings")}
+            />
+          )
+        ) : active === "settings" ? (
+          <SettingsScreen db={db} today={today} />
         ) : (
           <p className="text-text-muted">{cs.placeholder}</p>
         )}
       </main>
+      {dialog && db && (
+        <TransactionDialog
+          key={dialog.mode === "edit" ? `edit-${dialog.transaction.id}` : "new"}
+          db={db}
+          state={dialog}
+          today={today}
+          onClose={() => setDialog(null)}
+          onSaved={() => {
+            setDialog(null);
+            changed();
+          }}
+        />
+      )}
     </div>
   );
 }

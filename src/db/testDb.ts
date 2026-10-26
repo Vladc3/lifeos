@@ -40,3 +40,9 @@ export function createTestDb(): Db {
     },
   };
 }
+
+/** For tests: the value, or a clear failure instead of a non-null assertion. */
+export function must<T>(value: T | undefined, what = "value"): T {
+  if (value === undefined) throw new Error(`missing ${what}`);
+  return value;
+}

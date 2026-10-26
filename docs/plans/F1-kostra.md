@@ -122,7 +122,7 @@ gh pr checks        # ubuntu i windows zelené
 - [x] SYS-01 v rozsahu A6, SYS-03 jedna instance (K5)
 - [x] SYS-02 autostart přepínač, ověřeno na Hyprlandu (K6)
 - [x] PUB-01 README, PUB-02 (K1b), PUB-03 dev i release strana (K1)
-- [ ] CI zelené na ubuntu i windows, PRD v0.5 s A1–A6, tag v0.1.0
+- [x] CI zelené na ubuntu i windows, PRD v0.5 s A1–A6, tag v0.1.0
 
 ## Odpovědi vlastníka
 

@@ -1,6 +1,6 @@
 [package]
 name = "life-os"
-version = "0.1.0"
+version = "0.2.0"
 description = "Life OS: lokální app pro návyky a osobní finance"
 authors = ["Vladc3"]
 license = "MIT"

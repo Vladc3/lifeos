@@ -3,12 +3,26 @@ use tauri_plugin_sql::{Migration, MigrationKind};
 /// Every file in `migrations/` must be listed here (checked by the test below).
 /// Never edit a migration once committed: add a new file (plan F1, D2).
 pub fn migrations() -> Vec<Migration> {
-    vec![Migration {
-        version: 1,
-        description: "settings",
-        sql: include_str!("../migrations/0001_settings.sql"),
-        kind: MigrationKind::Up,
-    }]
+    vec![
+        Migration {
+            version: 1,
+            description: "settings",
+            sql: include_str!("../migrations/0001_settings.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 2,
+            description: "finance",
+            sql: include_str!("../migrations/0002_finance.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 3,
+            description: "default_categories",
+            sql: include_str!("../migrations/0003_default_categories.sql"),
+            kind: MigrationKind::Up,
+        },
+    ]
 }
 
 #[cfg(test)]

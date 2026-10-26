@@ -63,7 +63,7 @@ Spustitelná prázdná app: okno se sidebarem a 6 prázdnými moduly, tmavé tok
 | # | Úkol | Ověření |
 | --- | --- | --- |
 | T0 | Rust: `sudo pacman -S rustup && rustup default stable` | `rustc -V`, `cargo -V` |
-| T1 | Větev `feat/phase1-kostra`. `create-tauri-app` (react-ts, npm) do dočasné složky (do neprázdné odmítne), přesun do repa, ruční sloučení `.gitignore` a README. Cargo balíček `life-os`. `tauri.conf.json`: identifier `io.github.vladc3.lifeos.dev`, productName „Life OS Dev“, okno min. 1024 × 680. `tauri.release.conf.json`: identifier `io.github.vladc3.lifeos`, productName „Life OS“. Skript `build:release` = `tauri build --config src-tauri/tauri.release.conf.json --no-bundle` (v Context7 ověřit, vůči čemu se cesta `--config` řeší) | `npm run tauri dev` otevře okno (Hyprland: případně `WEBKIT_DISABLE_DMABUF_RENDERER=1`); `npm run build:release` vytvoří `src-tauri/target/release/life-os`; `git status` neukáže přepsané docs/, CLAUDE.md, LICENSE |
+| T1 | Větev `feat/phase1-kostra`. `create-tauri-app` (react-ts, npm) do dočasné složky (do neprázdné odmítne), přesun do repa, ruční sloučení `.gitignore` a README. Cargo balíček `life-os`. `tauri.conf.json`: identifier `io.github.vladc3.lifeos.dev`, productName „Life OS Dev“, okno 1280 × 800 bez minimální velikosti (viz odchylky). `tauri.release.conf.json`: identifier `io.github.vladc3.lifeos`, productName „Life OS“. Skript `build:release` = `tauri build --config src-tauri/tauri.release.conf.json --no-bundle` (v Context7 ověřit, vůči čemu se cesta `--config` řeší) | `npm run tauri dev` otevře okno (Hyprland: případně `WEBKIT_DISABLE_DMABUF_RENDERER=1`); `npm run build:release` vytvoří `src-tauri/target/release/life-os`; `git status` neukáže přepsané docs/, CLAUDE.md, LICENSE |
 | T2 | Nástroje: TS strict, ESLint flat config, Prettier s `.prettierignore` pro `docs/` a `CLAUDE.md`, `.nvmrc` = 26. Skripty: `lint` = `tsc --noEmit && eslint . && prettier --check .` (šablona create-tauri-app má v `tsconfig.json` `include: ["src"]`; `tsc -b` by kvůli `composite` v `tsconfig.node.json` mohl vygenerovat `vite.config.js`, který by Vite upřednostnil), `test` = `vitest run` | `npm run lint` a `npm test` projdou; schválně rozbitý typ v `src/` → `npm run lint` selže, pak vrátit (důkaz, že `tsc` opravdu kontroluje `src`) |
 | T3 | CI (D11), push větve, draft PR | `gh pr checks` zelené na ubuntu i windows |
 | T4 | D2: `.gitattributes`, `0001_settings.sql` (`settings(id INTEGER PRIMARY KEY, key TEXT NOT NULL UNIQUE, value TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))`), `migrations()` v Rustu, test registrace (nejdřív červený: soubor bez registrace), `lock.json` + `migrations.lock.test.ts` (nejdřív červený: chybí zámek). Před prvním `cargo test` jednou `npm run build` | `cargo test` a `npm test` červeně → zeleně; pokusná úprava `0001` → `npm test` selže, pak vrátit |
@@ -88,7 +88,7 @@ Spustitelná prázdná app: okno se sidebarem a 6 prázdnými moduly, tmavé tok
 | K1b | DB se necommituje (PUB-02) | `git check-ignore -v life-os.db` | vypíše pravidlo `*.db` |
 | K2 | DB a migrace | `sqlite3 $DEV/life-os.db '.tables' 'select version from _sqlx_migrations'` | `_sqlx_migrations settings`, verze `1` |
 | K3 | Chybový stav DB | `npm run dev` (jen Vite) v prohlížeči přes chrome-devtools: plugin chybí → DB selže | chybová hláška z `cs.ts`, žádná bílá obrazovka, v konzoli jen ta očekávaná chyba |
-| K4 | Shell | v app: Ctrl+1–6 přepínají moduly, Tab ukazuje fokus, okno nejde zmenšit pod 1024 × 680 | vše platí |
+| K4 | Shell | v app: Ctrl+1–6 přepínají moduly, Tab ukazuje fokus, po zmenšení okna (dlaždice na Hyprlandu) je text ostrý a obsah se přeskládá, ne roztáhne | vše platí |
 | K5 | Lišta a jedna instance | spustit `BIN` → zavřít okno → `pgrep -xc life-os` = 1 a ikona v liště; menu Otevřít → okno zpět; spustit `BIN` znovu z druhého terminálu → `pgrep -xc life-os` pořád 1 a okno je vidět (na Windows i zaostřené); menu Ukončit → `pgrep -xc life-os` = 0 | vše platí |
 | K6 | Autostart | v `BIN` přepínač zapnout → `~/.config/autostart/Life OS Dev.desktop` existuje a ukazuje na `BIN`; odhlásit a přihlásit → app naběhne s oknem na Dnes; přepínač vypnout → soubor zmizí | vše platí, na konci žádný záznam Life OS v `~/.config/autostart` |
 
@@ -116,7 +116,7 @@ gh pr checks        # ubuntu i windows zelené
 
 ## Akceptace
 
-- [ ] Kostra: okno, sidebar 6 modulů, výchozí Dnes, Ctrl+1–6, tokeny, Inter, viditelný fokus, min. 1024 × 680 (K4)
+- [ ] Kostra: okno, sidebar 6 modulů, výchozí Dnes, Ctrl+1–6, tokeny, Inter, viditelný fokus, layout bez roztažení v malém okně (K4)
 - [ ] SQLite + migrace + `settings` + repozitář s testy, Q4 rozhodnuto, obě pojistky migrací (T4, T5, K2)
 - [ ] NFR-09: texty kostry jen v `cs.ts`
 - [ ] SYS-01 v rozsahu A6, SYS-03 jedna instance (K5)
@@ -142,5 +142,5 @@ gh pr checks        # ubuntu i windows zelené
 | Navíc test `src/db/dataSeparation.test.ts` | Dev-team review (QA): PUB-03 hlídá stroj, ne jen jednorázová ruční kontrola |
 | `<link rel="icon" href="data:,">` v `index.html` | Bez něj 404 na `/favicon.ico` v konzoli |
 | Tray s pevným id (`TrayIconBuilder::with_id(identifier)`) | Výchozí id obsahuje PID. Omarchy bar ukládá připnutí podle id, takže by se po restartu ztratilo. Ikona je v šuplíku za `‹`, dokud ji uživatel nepřipne |
-| K4 na Hyprlandu: min. velikost platí jen pro plovoucí okno | Dlaždicové okno Hyprland zmenší pod 1024 × 680 (ověřeno: 749 × 400). Layout zůstává použitelný. Vynucení min. velikosti platí pro Windows a plovoucí okno |
+| Bez `minWidth`/`minHeight` (PRD kap. 8 upravena) | Hyprland dal dlaždici 749 × 400, app trvala na 1024 × 680 a Hyprland její obraz zmenšil: rozmazaný text, zdeformovaný poměr stran. Bez minima se layout přeskládá (ověřeno screenshotem: sidebar 280 px = 14rem × 1,25) |
 | K6 ověřeno bez odhlášení | uwsm spouští autostart přes systemd: `systemctl --user daemon-reload` + `start 'app-Life\x20OS\x20Dev@autostart.service'` je totéž, co udělá přihlášení. App naběhla na Dnes, vypnutí soubor smazalo |

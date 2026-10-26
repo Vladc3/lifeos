@@ -153,7 +153,7 @@ SQLite, jeden soubor `life-os.db` v Tauri app config dir (NFR-03). Vývojová a 
 
 ## 8. UI a design
 
-**Navigace:** levý sidebar s moduly Dnes, Návyky, Finance, Cíle, Review, Nastavení. Okno má minimálně 1024 × 680 px a layout se přizpůsobí tiling oknům na Hyprlandu.
+**Navigace:** levý sidebar s moduly Dnes, Návyky, Finance, Cíle, Review, Nastavení. Layout je navržený pro okno od 1024 × 680 px, ale okno minimální velikost nevynucuje: tiling na Hyprlandu by jinak obsah roztáhl a rozmazal. Menší okno nesmí rozbít layout.
 
 | Obrazovka | Obsah |
 | --- | --- |

@@ -15,6 +15,7 @@ export const cs = {
   placeholder: "Tenhle modul přijde v některé z dalších fází.",
   dbError: "Databázi se nepodařilo otevřít.",
   settings: {
+    tabs: { finance: "Rozpočet a kategorie", system: "Systém" },
     autostart: "Spouštět po přihlášení",
     autostartError: "Spouštění po přihlášení teď nejde zjistit ani změnit.",
     budget: "Celkový měsíční rozpočet (Kč)",

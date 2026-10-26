@@ -41,7 +41,8 @@ pub fn run() {
                 .default_window_icon()
                 .cloned()
                 .expect("bundle icon is configured in tauri.conf.json");
-            TrayIconBuilder::new()
+            // Stable id: the default contains the PID, so Omarchy's bar can't remember a pin.
+            TrayIconBuilder::with_id(app.config().identifier.clone())
                 .icon(icon)
                 .tooltip("Life OS")
                 .menu(&menu)

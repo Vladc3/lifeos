@@ -141,3 +141,6 @@ gh pr checks        # ubuntu i windows zelené
 | `openDb()` cachuje promise (test `src/db/index.test.ts`) | Dev-team review: StrictMode volal `Database.load` dvakrát, každé volání otevře nový pool a migruje jen první |
 | Navíc test `src/db/dataSeparation.test.ts` | Dev-team review (QA): PUB-03 hlídá stroj, ne jen jednorázová ruční kontrola |
 | `<link rel="icon" href="data:,">` v `index.html` | Bez něj 404 na `/favicon.ico` v konzoli |
+| Tray s pevným id (`TrayIconBuilder::with_id(identifier)`) | Výchozí id obsahuje PID. Omarchy bar ukládá připnutí podle id, takže by se po restartu ztratilo. Ikona je v šuplíku za `‹`, dokud ji uživatel nepřipne |
+| K4 na Hyprlandu: min. velikost platí jen pro plovoucí okno | Dlaždicové okno Hyprland zmenší pod 1024 × 680 (ověřeno: 749 × 400). Layout zůstává použitelný. Vynucení min. velikosti platí pro Windows a plovoucí okno |
+| K6 ověřeno bez odhlášení | uwsm spouští autostart přes systemd: `systemctl --user daemon-reload` + `start 'app-Life\x20OS\x20Dev@autostart.service'` je totéž, co udělá přihlášení. App naběhla na Dnes, vypnutí soubor smazalo |

@@ -140,3 +140,18 @@ gh pr checks        # ubuntu i windows zelené
 - [ ] PUB-04 demo data jen v dev DB (K8)
 - [ ] Regrese fáze 1 v pořádku (K10, K11)
 - [ ] CI zelené, PRD v0.6 s B1–B7, tag v0.2.0
+
+## Odchylky při implementaci
+
+| Co | Proč |
+| --- | --- |
+| Datum v DB hlídá `CHECK (date(date) IS date)`, ne `=` | `date('26.10.2026')` vrátí NULL a CHECK NULL propustí. `IS` porovná NULL jako nepravdu (test „Czech date format“) |
+| Testy schématu chtějí chybu omezení (`/constraint failed/`), ne jakoukoli chybu | Bez tabulky by „DB odmítne“ prošlo kvůli „no such table“, tedy ze špatného důvodu |
+| Navíc `parseOptionalAmount`, `formatAmountInput`, `isValidDate`, `validateCategoryForm`, `categoryColors.ts` (vše s testy) | Rozpočet i limit sdílí pravidlo „prázdné = bez limitu“, úprava potřebuje částku zpět do pole, datum se kontroluje stejně jako v DB |
+| Navíc `src/features/useModalDialog.ts` | Dialog transakce i kategorie sdílí otevření, fokus a Esc. Poslouchá `cancel`, ne `close`, jinak by StrictMode dialog hned zavřel |
+| Zkratky se při otevřeném dialogu poznají podle `dialog[open]` v DOM | Kryje dialog transakce i kategorie bez sdíleného stavu |
+| `scripts/` je v `tsconfig.json` (`include`) | Demo skript projde `tsc` jako zbytek kódu. Node 26 ho spouští přímo, `src/lib/demo.ts` proto nemá runtime importy |
+| Lockfile: jen dvě řádky verze | `npm install --package-lock-only` přidal i nesouvisející volitelné balíčky, vráceno |
+| Ověření UI z části automaticky | `wtype` + `grim` na neviditelném monitoru (`hyprctl output create headless`) a kliknutí v liště přes D-Bus. Ověřeno: K1 (bez Ctrl+N), K2, K3 (bez Esc u selectu), K7, K8, K12 a screenshot z demo dat. `wtype` má vlastní rozložení kláves, takže `event.code` neodpovídá (Ctrl+N, Ctrl+1–6 ověří vlastník ručně) |
+| Formát data v poli podle jazyka systému | WebKitGTK bere locale z OS (`LANG=en_US` → `10/26/2026`), `lang="cs"` nepomůže. Ukládá se vždy `YYYY-MM-DD`, seznam ukazuje `26. 10. 2026`. Zapsáno do README |
+| Commit `19b65f3` prošel s chybou lintu | `npm run lint \| tail` schoval návratový kód. Opraveno v `eef423c`, příkazy od té doby se `set -o pipefail` |

@@ -16,7 +16,11 @@ It also answers one question every morning: how much can I spend today?
 
 ## Status
 
-Phase 1 (skeleton, 0.1.0): app shell, SQLite with migrations, tray, single instance, autostart, CI on Linux and Windows. The modules are still empty. The UI is Czech for now; English is planned after 1.0.
+Phase 2 (finance basics, 0.2.0): log an expense or income in a few keystrokes (Ctrl+N anywhere, or "Nový výdaj" in the tray), browse transactions by month with a category filter, edit and delete them, manage categories with monthly limits, and watch the monthly budget with green, orange and red bars. Habits, goals and the Today screen come in the next phases. The UI is Czech for now; English is planned after 1.0.
+
+![Finance screen with demo data](docs/screenshots/finance.png)
+
+_Screenshot from made-up demo data (`npm run demo`)._
 
 - Spec (Czech): [docs/PRD.md](docs/PRD.md)
 - Roadmap: phases 0.1.0 → 1.0.0 in chapter 10 of the spec, plans in [docs/plans](docs/plans)
@@ -29,6 +33,7 @@ Requirements: Node ≥ 22.13 (see `.nvmrc`), Rust stable, and the [Tauri prerequ
 npm ci
 npm run tauri dev       # development build, uses its own data folder
 npm run build:release   # the version for real use: src-tauri/target/release/life-os
+npm run demo            # fills the development database with made-up data (never the real one)
 npm run lint && npm test
 ```
 
@@ -41,6 +46,7 @@ Development and real data never mix: the default config uses the identifier `io.
 - "Start after login" writes `~/.config/autostart/<name>.desktop`. Hyprland only runs it when the session supports XDG autostart (for example via uwsm). Otherwise add `exec-once` with the binary path to your Hyprland config.
 - Closing the window hides Life OS to the tray; quit from the tray menu.
 - On Linux the tray menu opens on right click (two-finger tap on a touchpad). Left click does nothing, Tauri's tray can't receive it there.
+- Date fields show dates in your system's format (WebKitGTK follows the OS locale, e.g. `10/26/2026` with `LANG=en_US`). The app stores and lists dates the same way either way.
 
 ## License
 

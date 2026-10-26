@@ -116,12 +116,12 @@ gh pr checks        # ubuntu i windows zelené
 
 ## Akceptace
 
-- [ ] Kostra: okno, sidebar 6 modulů, výchozí Dnes, Ctrl+1–6, tokeny, Inter, viditelný fokus, layout bez roztažení v malém okně (K4)
-- [ ] SQLite + migrace + `settings` + repozitář s testy, Q4 rozhodnuto, obě pojistky migrací (T4, T5, K2)
-- [ ] NFR-09: texty kostry jen v `cs.ts`
-- [ ] SYS-01 v rozsahu A6, SYS-03 jedna instance (K5)
-- [ ] SYS-02 autostart přepínač, ověřeno na Hyprlandu (K6)
-- [ ] PUB-01 README, PUB-02 (K1b), PUB-03 dev i release strana (K1)
+- [x] Kostra: okno, sidebar 6 modulů, výchozí Dnes, Ctrl+1–6, tokeny, Inter, viditelný fokus, layout bez roztažení v malém okně (K4)
+- [x] SQLite + migrace + `settings` + repozitář s testy, Q4 rozhodnuto, obě pojistky migrací (T4, T5, K2)
+- [x] NFR-09: texty kostry jen v `cs.ts`
+- [x] SYS-01 v rozsahu A6, SYS-03 jedna instance (K5)
+- [x] SYS-02 autostart přepínač, ověřeno na Hyprlandu (K6)
+- [x] PUB-01 README, PUB-02 (K1b), PUB-03 dev i release strana (K1)
 - [ ] CI zelené na ubuntu i windows, PRD v0.5 s A1–A6, tag v0.1.0
 
 ## Odpovědi vlastníka
@@ -144,3 +144,4 @@ gh pr checks        # ubuntu i windows zelené
 | Tray s pevným id (`TrayIconBuilder::with_id(identifier)`) | Výchozí id obsahuje PID. Omarchy bar ukládá připnutí podle id, takže by se po restartu ztratilo. Ikona je v šuplíku za `‹`, dokud ji uživatel nepřipne |
 | Bez `minWidth`/`minHeight` (PRD kap. 8 upravena) | Hyprland dal dlaždici 749 × 400, app trvala na 1024 × 680 a Hyprland její obraz zmenšil: rozmazaný text, zdeformovaný poměr stran. Bez minima se layout přeskládá (ověřeno screenshotem: sidebar 280 px = 14rem × 1,25) |
 | K6 ověřeno bez odhlášení | uwsm spouští autostart přes systemd: `systemctl --user daemon-reload` + `start 'app-Life\x20OS\x20Dev@autostart.service'` je totéž, co udělá přihlášení. App naběhla na Dnes, vypnutí soubor smazalo |
+| K5: menu v liště jen pravým klikem, README doplněno | Levý klik posílá `Activate`, na který Tauri tray na Linuxu nereaguje (`dbus-monitor`: „No handler for Activate“). Omarchy bar otevře menu pravým klikem, na touchpadu dvěma prsty. Ukončit přes menu ověřeno i přímo přes D-Bus (`com.canonical.dbusmenu.Event`) |

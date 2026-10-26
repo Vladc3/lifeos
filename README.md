@@ -40,6 +40,7 @@ Development and real data never mix: the default config uses the identifier `io.
 - Tray icon needs a StatusNotifierItem host in your bar (Waybar `tray` module, Omarchy's shell has one).
 - "Start after login" writes `~/.config/autostart/<name>.desktop`. Hyprland only runs it when the session supports XDG autostart (for example via uwsm). Otherwise add `exec-once` with the binary path to your Hyprland config.
 - Closing the window hides Life OS to the tray; quit from the tray menu.
+- On Linux the tray menu opens on right click (two-finger tap on a touchpad). Left click does nothing, Tauri's tray can't receive it there.
 
 ## License
 

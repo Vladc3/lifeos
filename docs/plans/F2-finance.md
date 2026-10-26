@@ -132,16 +132,16 @@ gh pr checks        # ubuntu i windows zelené
 
 ## Akceptace
 
-- [ ] FIN-01 zápis: fokus na částce, Enter uloží, kategorie podle typu, validace částky (K1–K3)
-- [ ] FIN-02 seznam: měsíc, kategorie, úprava, smazání s potvrzením (K4)
-- [ ] FIN-03 kategorie: přidat, upravit, archivovat, použitou nejde smazat (K6)
-- [ ] FIN-04 rozpočet: celkový + barvy 80 / 100 % (K5, O1)
-- [ ] Výchozí kategorie 10 + 2 (T4)
-- [ ] SYS-01 „Nový výdaj“ v liště, i hned po startu (K7, K12)
-- [ ] PUB-04 demo data jen v dev DB (K8)
-- [ ] Regrese fáze 1 v pořádku (K10, K11)
-- [ ] Úprava + lišta bez duplikátu (K13)
-- [ ] CI zelené, PRD v0.6 s B1–B7, tag v0.2.0
+- [x] FIN-01 zápis: fokus na částce, Enter uloží, kategorie podle typu, validace částky (K1–K3)
+- [x] FIN-02 seznam: měsíc, kategorie, úprava, smazání s potvrzením (K4)
+- [x] FIN-03 kategorie: přidat, upravit, archivovat, použitou nejde smazat (K6)
+- [x] FIN-04 rozpočet: celkový + barvy 80 / 100 % (K5, O1)
+- [x] Výchozí kategorie 10 + 2 (T4)
+- [x] SYS-01 „Nový výdaj“ v liště, i hned po startu (K7, K12)
+- [x] PUB-04 demo data jen v dev DB (K8)
+- [x] Regrese fáze 1 v pořádku (K10, K11)
+- [x] Úprava + lišta bez duplikátu (K13)
+- [x] CI zelené, PRD v0.6 s B1–B7, tag v0.2.0
 
 ## Odchylky při implementaci
 

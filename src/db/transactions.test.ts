@@ -7,7 +7,7 @@ import {
   monthExpenses,
   updateTransaction,
 } from "./transactions";
-import { createTestDb } from "./testDb";
+import { createTestDb, must } from "./testDb";
 import type { Db } from "./types";
 
 let db: Db;
@@ -18,7 +18,11 @@ let salary: number;
 beforeEach(async () => {
   db = createTestDb();
   const all = await listCategories(db);
-  const id = (name: string) => all.find((c) => c.name === name)!.id;
+  const id = (name: string) =>
+    must(
+      all.find((c) => c.name === name),
+      name,
+    ).id;
   food = id("Jídlo");
   transport = id("Doprava");
   salary = id("Práce / zakázky");
@@ -75,7 +79,12 @@ describe("transactions repository (FIN-01, FIN-02)", () => {
       note: "vlak",
     });
     expect(await listTransactions(db, "2026-10")).toMatchObject([
-      { date: "2026-10-20", amount: 9900, category_id: transport, note: "vlak" },
+      {
+        date: "2026-10-20",
+        amount: 9900,
+        category_id: transport,
+        note: "vlak",
+      },
     ]);
     await deleteTransaction(db, tx.id);
     expect(await listTransactions(db, "2026-10")).toEqual([]);
@@ -83,7 +92,9 @@ describe("transactions repository (FIN-01, FIN-02)", () => {
 
   it("changing a category's kind changes its transactions too (PRD v0.6, O2)", async () => {
     await add("2026-10-26", 100, food);
-    const category = (await listCategories(db)).find((c) => c.id === food)!;
+    const category = must(
+      (await listCategories(db)).find((c) => c.id === food),
+    );
     await updateCategory(db, food, { ...category, kind: "income" });
     expect((await listTransactions(db, "2026-10"))[0].kind).toBe("income");
   });

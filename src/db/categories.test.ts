@@ -10,7 +10,7 @@ import {
   type CategoryInput,
 } from "./categories";
 import { createTransaction } from "./transactions";
-import { createTestDb } from "./testDb";
+import { createTestDb, must } from "./testDb";
 import type { Db } from "./types";
 
 let db: Db;
@@ -27,7 +27,10 @@ const coffee: CategoryInput = {
 };
 
 const byName = async (name: string) =>
-  (await listCategories(db)).find((c) => c.name === name)!;
+  must(
+    (await listCategories(db)).find((c) => c.name === name),
+    name,
+  );
 
 describe("categories repository (FIN-03)", () => {
   it("lists the default categories, expenses first", async () => {
@@ -39,7 +42,10 @@ describe("categories repository (FIN-03)", () => {
       monthly_budget: 0,
       archived_at: null,
     });
-    expect(all.at(-1)).toMatchObject({ name: "Ostatní příjmy", kind: "income" });
+    expect(all[all.length - 1]).toMatchObject({
+      name: "Ostatní příjmy",
+      kind: "income",
+    });
   });
 
   it("creates a category and returns its id", async () => {

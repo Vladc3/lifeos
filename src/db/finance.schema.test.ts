@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { CATEGORY_COLORS } from "../lib/categoryColors";
 import { createTestDb } from "./testDb";
 import type { Db } from "./types";
 
@@ -49,6 +50,13 @@ describe("default categories (PRD kap. 10)", () => {
       "Ostatní příjmy",
     ]);
     expect(rows.every((r) => r.monthly_budget === 0)).toBe(true);
+  });
+
+  it("uses only colors from the category palette", async () => {
+    const rows = await db.select<{ color: string }[]>(
+      "SELECT DISTINCT color FROM categories",
+    );
+    for (const { color } of rows) expect(CATEGORY_COLORS).toContain(color);
   });
 });
 

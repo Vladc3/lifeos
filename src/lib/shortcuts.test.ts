@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { moduleForShortcut, type ShortcutEvent } from "./shortcuts";
+import {
+  isNewTransactionShortcut,
+  moduleForShortcut,
+  type ShortcutEvent,
+} from "./shortcuts";
 
 const press = (
   code: string,
@@ -39,5 +43,21 @@ describe("moduleForShortcut (PRD kap. 8: Ctrl+1 až Ctrl+6)", () => {
     ["Ctrl+N", press("KeyN")],
   ])("%s nepřepíná modul", (_label, event) => {
     expect(moduleForShortcut(event)).toBeNull();
+  });
+});
+
+describe("isNewTransactionShortcut (PRD kap. 8: Ctrl+N, FIN-01)", () => {
+  it("is Ctrl+N by physical key", () => {
+    expect(isNewTransactionShortcut(press("KeyN"))).toBe(true);
+  });
+
+  it.each([
+    ["N bez Ctrl", press("KeyN", { ctrlKey: false })],
+    ["Ctrl+Shift+N (nový návyk)", press("KeyN", { shiftKey: true })],
+    ["Ctrl+Alt+N", press("KeyN", { altKey: true })],
+    ["Ctrl+Meta+N", press("KeyN", { metaKey: true })],
+    ["Ctrl+1", press("Digit1")],
+  ])("%s není nová transakce", (_label, event) => {
+    expect(isNewTransactionShortcut(event)).toBe(false);
   });
 });

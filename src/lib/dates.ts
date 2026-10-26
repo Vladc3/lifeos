@@ -8,6 +8,14 @@ export function todayLocal(now: Date): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
+/** YYYY-MM-DD of a day that exists (2026-02-30 does not), like the DB CHECK. */
+export function isValidDate(date: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const [year, m, d] = date.split("-").map(Number);
+  const day = new Date(Date.UTC(year, m - 1, d));
+  return day.getUTCMonth() === m - 1 && day.getUTCDate() === d;
+}
+
 export function monthOf(date: string): string {
   return date.slice(0, 7);
 }

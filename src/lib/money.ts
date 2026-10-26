@@ -24,3 +24,18 @@ export function formatMoney(halere: number): string {
     maximumFractionDigits: digits,
   }).format(halere / 100);
 }
+
+/** Value for the amount field when editing: 12050 → "120,50", 100000 → "1000". */
+export function formatAmountInput(halere: number): string {
+  const crowns = Math.floor(halere / 100);
+  const rest = halere % 100;
+  return rest === 0
+    ? String(crowns)
+    : `${crowns},${String(rest).padStart(2, "0")}`;
+}
+
+/** Budget or limit as typed: empty or zero = 0 (no limit), otherwise like parseAmount. */
+export function parseOptionalAmount(input: string): number | null {
+  const text = input.replace(/\s/g, "");
+  return text === "" || /^0+([.,]0{1,2})?$/.test(text) ? 0 : parseAmount(text);
+}

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatMoney, parseAmount } from "./money";
+import {
+  formatAmountInput,
+  formatMoney,
+  parseAmount,
+  parseOptionalAmount,
+} from "./money";
 
 const NBSP = " ";
 
@@ -51,5 +56,33 @@ describe("formatMoney (cs-CZ, haléře jen když nejsou nulové)", () => {
 
   it("round-trips with parseAmount", () => {
     expect(parseAmount(formatMoney(123450).replace("Kč", ""))).toBe(123450);
+  });
+});
+
+describe("formatAmountInput (hodnota pole částky při úpravě)", () => {
+  it.each([
+    [12050, "120,50"],
+    [100000, "1000"],
+    [5, "0,05"],
+    [1, "0,01"],
+  ])("%d → %j, and parseAmount reads it back", (halere, text) => {
+    expect(formatAmountInput(halere)).toBe(text);
+    expect(parseAmount(text)).toBe(halere);
+  });
+});
+
+describe("parseOptionalAmount (rozpočet a limit: prázdné = bez limitu)", () => {
+  it.each([
+    ["", 0],
+    ["  ", 0],
+    ["0", 0],
+    ["0,00", 0],
+    ["1 500", 150000],
+  ])("%j → %d", (input, halere) => {
+    expect(parseOptionalAmount(input)).toBe(halere);
+  });
+
+  it.each(["-5", "abc", "1,234"])("%j → null", (input) => {
+    expect(parseOptionalAmount(input)).toBeNull();
   });
 });

@@ -25,3 +25,22 @@ body {
   outline: 2px solid var(--color-text);
   outline-offset: 2px;
 }
+
+/* Native controls (date picker, select popup, scrollbars) in dark too. */
+:root {
+  color-scheme: dark;
+}
+
+/* Shared controls, so components don't repeat long class lists. */
+.btn {
+  @apply rounded-md border border-border px-3 py-1.5 hover:bg-border disabled:opacity-50;
+}
+.btn-primary {
+  @apply border-text bg-text text-bg hover:bg-text-muted;
+}
+.field {
+  @apply mt-1 block w-full rounded-md border border-border bg-bg px-3 py-2;
+}
+.label {
+  @apply text-sm text-text-muted;
+}

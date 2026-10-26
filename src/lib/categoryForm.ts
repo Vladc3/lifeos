@@ -1,6 +1,6 @@
 import type { CategoryInput, CategoryKind } from "../db/categories";
 import { CATEGORY_COLORS } from "./categoryColors";
-import { parseAmount } from "./money";
+import { parseOptionalAmount } from "./money";
 
 export interface CategoryFormValues {
   name: string;
@@ -25,13 +25,10 @@ export function validateCategoryForm(
   if (!(CATEGORY_COLORS as readonly string[]).includes(values.color))
     return { ok: false, error: "color" };
 
-  let monthly_budget = 0;
-  const budget = values.budget.trim();
-  if (values.kind === "expense" && budget !== "" && budget !== "0") {
-    const parsed = parseAmount(budget);
-    if (parsed === null) return { ok: false, error: "budget" };
-    monthly_budget = parsed;
-  }
+  // A limit only exists on expense categories, an income one ignores the field.
+  const monthly_budget =
+    values.kind === "expense" ? parseOptionalAmount(values.budget) : 0;
+  if (monthly_budget === null) return { ok: false, error: "budget" };
   return {
     ok: true,
     value: {

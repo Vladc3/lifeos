@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
 import { openDb } from "./db";
 import type { Db } from "./db/types";
@@ -47,6 +49,23 @@ export default function App() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  // SYS-01 "Nový výdaj" from the tray (plan F2, E8). Rust stores the click,
+  // so taking it after listen() also catches a click from before the app loaded.
+  useEffect(() => {
+    const take = () =>
+      invoke<boolean>("take_new_expense").then(
+        (requested) => requested && setDialog({ mode: "new", kind: "expense" }),
+        () => undefined, // not in Tauri (npm run dev in a browser)
+      );
+    const unlisten = listen("new-expense", () => void take());
+    unlisten.then(take, () => undefined);
+    return () =>
+      void unlisten.then(
+        (stop) => stop(),
+        () => undefined,
+      );
   }, []);
 
   const changed = () => setDataVersion((v) => v + 1);

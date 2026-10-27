@@ -92,6 +92,57 @@ export const cs = {
       date: "Zadej platné datum.",
     },
   },
+  habits: {
+    add: "Přidat návyk (Ctrl+Shift+N)",
+    empty: "Zatím tu nemáš žádný návyk. Začni šablonou nebo vlastním.",
+    newHabit: "Nový návyk",
+    editHabit: "Upravit návyk",
+    template: "Šablona",
+    noTemplate: "Vlastní návyk",
+    name: "Název",
+    icon: "Ikona (emoji)",
+    identity: "Identita (kým chceš být)",
+    type: "Typ",
+    types: { check: "Ano/ne", count: "Počet", duration: "Čas (minuty)" },
+    target: "Cíl",
+    unit: "Jednotka",
+    minValue: "Minimum (hodnota)",
+    minVersion: "Minimální verze",
+    frequency: "Frekvence",
+    frequencies: {
+      daily: "Denně",
+      days: "Vybrané dny",
+      weekly_count: "X× týdně",
+    },
+    weekdays: ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"],
+    weeklyTarget: "Kolikrát týdně",
+    anchor: "Kotva (po čem to udělám)",
+    errors: {
+      name: "Název musí mít 1–40 znaků.",
+      icon: "Zadej ikonu, třeba emoji.",
+      target: "Cíl musí být celé číslo větší než 0.",
+      min: "Minimum musí být celé číslo větší než 0 a menší než cíl.",
+      days: "Vyber aspoň jeden den.",
+      weekly: "Kolikrát týdně: 1 až 7.",
+    },
+    limit: "Máš 3 budované návyky. Další přidáš, až se některý zaběhne.",
+    pastRest: "Volno jde nastavit jen na dnešek a dál.",
+    streak: (count: number, weeks: boolean) =>
+      `${count} ${plural(count, weeks ? ["týden", "týdny", "týdnů"] : ["den", "dny", "dní"])}`,
+    atRisk: "v ohrožení",
+    established: "zaběhnutý",
+    status: {
+      done: "splnil",
+      minimum: "minimum",
+      missed: "vynechal",
+      rest: "volno",
+      pending: "čeká",
+      unscheduled: "nenaplánováno",
+    },
+    cell: (habit: string, date: string, status: string) =>
+      `${habit}, ${date}: ${status}`,
+    matrix: "Měsíční matice návyků",
+  },
   loadError: "Data se nepodařilo načíst.",
   saveError: "Uložení se nepovedlo.",
 } as const;
@@ -101,4 +152,10 @@ function transactionsWord(count: number): string {
   return new Intl.PluralRules("cs").select(count) === "other"
     ? "transakcí"
     : "transakce";
+}
+
+// Czech plural: forms for 1, 2–4 and 0 / 5 and more.
+function plural(count: number, [one, few, many]: [string, string, string]) {
+  const rule = new Intl.PluralRules("cs").select(count);
+  return rule === "one" ? one : rule === "few" ? few : many;
 }

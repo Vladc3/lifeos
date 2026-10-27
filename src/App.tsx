@@ -8,11 +8,14 @@ import {
   TransactionDialog,
   type TransactionDialogState,
 } from "./features/finance/TransactionDialog";
+import { HabitDialog } from "./features/habits/HabitDialog";
+import { HabitsScreen } from "./features/habits/HabitsScreen";
 import { SettingsScreen } from "./features/settings/SettingsScreen";
 import { cs } from "./i18n/cs";
 import { todayLocal } from "./lib/dates";
 import {
   MODULES,
+  isNewHabitShortcut,
   isNewTransactionShortcut,
   moduleForShortcut,
   type ModuleId,
@@ -23,6 +26,7 @@ export default function App() {
   const [db, setDb] = useState<Db | null>(null);
   const [dbError, setDbError] = useState<string | null>(null);
   const [dialog, setDialog] = useState<TransactionDialogState | null>(null);
+  const [habitDialog, setHabitDialog] = useState(false);
   // Bumped after every save, so screens reload their data (plan F2, E9).
   const [dataVersion, setDataVersion] = useState(0);
   // Read on every render: a window left open overnight gets the new day.
@@ -37,6 +41,11 @@ export default function App() {
     function onKeyDown(event: KeyboardEvent) {
       // E9: no shortcuts while any dialog is open (transaction or category).
       if (document.querySelector("dialog[open]")) return;
+      if (isNewHabitShortcut(event)) {
+        event.preventDefault();
+        setHabitDialog(true);
+        return;
+      }
       if (isNewTransactionShortcut(event)) {
         event.preventDefault();
         setDialog({ mode: "new", kind: "expense" });
@@ -118,12 +127,30 @@ export default function App() {
               onOpenSettings={() => setActive("settings")}
             />
           )
+        ) : active === "habits" ? (
+          db && (
+            <HabitsScreen
+              db={db}
+              dataVersion={dataVersion}
+              onAdd={() => setHabitDialog(true)}
+            />
+          )
         ) : active === "settings" ? (
           <SettingsScreen db={db} today={today} />
         ) : (
           <p className="text-text-muted">{cs.placeholder}</p>
         )}
       </main>
+      {habitDialog && db && (
+        <HabitDialog
+          db={db}
+          onClose={() => setHabitDialog(false)}
+          onSaved={() => {
+            setHabitDialog(false);
+            changed();
+          }}
+        />
+      )}
       {dialog && db && (
         <TransactionDialog
           key={dialog.mode === "edit" ? `edit-${dialog.transaction.id}` : "new"}

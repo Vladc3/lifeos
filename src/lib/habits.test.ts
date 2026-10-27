@@ -391,6 +391,18 @@ describe("weekly_count (X× týdně, PRD v0.7 P6)", () => {
     ).toEqual({ streak: 3, atRisk: false });
   });
 
+  it("a skipped week next to a miss does not make two misses in a row (P6)", () => {
+    // weeks 09-28 ✓, 10-05 ✓, 10-12 paused with 1 success, 10-19 only 1 → missed
+    const pause = [{ start_date: "2026-10-14", end_date: "2026-10-16" }];
+    expect(
+      habitStreak(weekly(START), pause, weekLogs(START, "3311"), TODAY),
+    ).toEqual({ streak: 2, atRisk: true });
+    // first (partial) week without success, then a missed full week
+    expect(
+      habitStreak(weekly("2026-10-14"), [], weekLogs("2026-10-19", "1"), TODAY),
+    ).toEqual({ streak: 0, atRisk: true });
+  });
+
   it("minimum counts toward the weekly target", () => {
     const logs = weekLogs(START, "3333").map((l, i) =>
       i % 3 === 0 ? { ...l, status: "minimum" as const } : l,

@@ -136,3 +136,17 @@ export function nextCellStatus(
   const index = order.indexOf(current === "missed" ? null : current);
   return index === -1 ? null : order[(index + 1) % order.length];
 }
+
+/**
+ * CALC-02 for count/duration: value ≥ target = done, min ≤ value < target =
+ * minimum, otherwise missed. Called only when a log is written, so changing
+ * the target later does not rewrite history (PRD v0.7, P3).
+ */
+export function statusForValue(
+  value: number,
+  target: number,
+  min: number | null,
+): LogStatus {
+  if (value >= target) return "done";
+  return min !== null && value >= min ? "minimum" : "missed";
+}

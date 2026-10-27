@@ -142,6 +142,10 @@ export const cs = {
     cell: (habit: string, date: string, status: string) =>
       `${habit}, ${date}: ${status}`,
     matrix: "Měsíční matice návyků",
+    value: (unit: string | null) => (unit ? `Hodnota (${unit})` : "Hodnota"),
+    valueTitle: (habit: string, date: string) => `${habit} · ${date}`,
+    valueHint: "0 záznam smaže. Pravý klik nebo Shift+Enter na buňce.",
+    valueError: "Zadej celé číslo 0 nebo větší.",
   },
   loadError: "Data se nepodařilo načíst.",
   saveError: "Uložení se nepovedlo.",

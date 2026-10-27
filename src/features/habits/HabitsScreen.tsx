@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import {
   listHabits,
   listLogs,
@@ -23,8 +29,10 @@ import {
   habitStreak,
   isScheduled,
   nextCellStatus,
+  statusForValue,
   type DayStatus,
 } from "../../lib/habits";
+import { dialogClass, useModalDialog } from "../useModalDialog";
 
 const t = cs.habits;
 
@@ -61,6 +69,11 @@ export function HabitsScreen(props: {
     Number(today.slice(8)) - 1,
   ]);
   const grid = useRef<HTMLTableElement>(null);
+  // Exact value of a count/duration day (PRD v0.7: right click or Shift+Enter).
+  const [valueFor, setValueFor] = useState<{
+    row: Row;
+    date: string;
+  } | null>(null);
 
   useEffect(() => {
     let current = true;
@@ -91,7 +104,32 @@ export function HabitsScreen(props: {
     };
   });
 
-  async function cycle(row: (typeof rows)[number], date: string) {
+  type Row = (typeof rows)[number];
+
+  function openValue(row: Row, date: string) {
+    if (row.habit.type === "check" || !isScheduled(row.habit, row.pauses, date))
+      return;
+    setValueFor({ row, date });
+  }
+
+  async function saveValue(row: Row, date: string, value: number) {
+    const { habit } = row;
+    const now = todayLocal(new Date());
+    // statusForValue only here, when writing: a later target change keeps history.
+    const status =
+      value === 0
+        ? null
+        : statusForValue(value, habit.target_value ?? 0, habit.min_value);
+    try {
+      await setLog(db, habit.id, date, status, status ? value : null, now);
+      setValueFor(null);
+      setVersion((v) => v + 1);
+    } catch {
+      setNotice(cs.saveError);
+    }
+  }
+
+  async function cycle(row: Row, date: string) {
     // "Today" at the moment of the click, not of the render (council F3).
     const now = todayLocal(new Date());
     const { habit } = row;
@@ -233,6 +271,16 @@ export function HabitsScreen(props: {
                           tabIndex={focus[0] === r && focus[1] === c ? 0 : -1}
                           onFocus={() => setFocus([r, c])}
                           onClick={() => void cycle(row, day)}
+                          onContextMenu={(event) => {
+                            event.preventDefault();
+                            openValue(row, day);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" && event.shiftKey) {
+                              event.preventDefault();
+                              openValue(row, day);
+                            }
+                          }}
                           aria-label={t.cell(
                             row.habit.name,
                             formatDate(day),
@@ -251,6 +299,75 @@ export function HabitsScreen(props: {
           </table>
         </div>
       )}
+
+      {valueFor && (
+        <ValueDialog
+          title={t.cell(valueFor.row.habit.name, formatDate(valueFor.date), "")}
+          unit={valueFor.row.habit.unit}
+          initial={
+            valueFor.row.logs.find((l) => l.date === valueFor.date)?.value ??
+            null
+          }
+          onClose={() => setValueFor(null)}
+          onSave={(value) => void saveValue(valueFor.row, valueFor.date, value)}
+        />
+      )}
     </div>
+  );
+}
+
+function ValueDialog(props: {
+  title: string;
+  unit: string | null;
+  initial: number | null;
+  onClose: () => void;
+  onSave: (value: number) => void;
+}) {
+  const { ref, onCancel } = useModalDialog(props.onClose);
+  const [text, setText] = useState(
+    props.initial === null ? "" : String(props.initial),
+  );
+  const [error, setError] = useState(false);
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    const trimmed = text.trim();
+    if (!/^\d+$/.test(trimmed)) {
+      setError(true);
+      return;
+    }
+    props.onSave(Number(trimmed));
+  }
+
+  return (
+    <dialog ref={ref} onCancel={onCancel} className={dialogClass}>
+      <form onSubmit={submit} className="space-y-4">
+        <h2 className="text-lg font-semibold">{props.title}</h2>
+        <label className="block">
+          <span className="label">{t.value(props.unit)}</span>
+          <input
+            data-autofocus
+            inputMode="numeric"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="field text-2xl"
+          />
+          <span className="text-sm text-text-muted">{t.valueHint}</span>
+        </label>
+        {error && (
+          <p role="alert" className="text-danger">
+            {t.valueError}
+          </p>
+        )}
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={props.onClose} className="btn">
+            {cs.transactionDialog.cancel}
+          </button>
+          <button type="submit" className="btn btn-primary">
+            {cs.transactionDialog.save}
+          </button>
+        </div>
+      </form>
+    </dialog>
   );
 }

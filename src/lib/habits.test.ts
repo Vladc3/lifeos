@@ -5,6 +5,7 @@ import {
   habitStreak,
   isScheduled,
   nextCellStatus,
+  statusForValue,
   type HabitRule,
   type HabitLog,
   type Pause,
@@ -233,5 +234,18 @@ describe("nextCellStatus (HAB-03 cyklus kliku, PRD v0.7)", () => {
   it("an old stored rest on a past day goes back to empty", () => {
     expect(nextCellStatus("rest", "past", true)).toBeNull();
     expect(nextCellStatus("missed", "past", true)).toBe("done");
+  });
+});
+
+describe("statusForValue (CALC-02, called only when a log is written)", () => {
+  it.each([
+    [10, 10, 1, "done"], // value = target
+    [12, 10, 1, "done"],
+    [7, 10, 1, "minimum"],
+    [1, 10, 1, "minimum"], // value = min
+    [5, 10, null, "missed"], // below target and no minimum
+    [0, 10, 1, "missed"],
+  ] as const)("%d of %d (min %s) → %s", (value, target, min, status) => {
+    expect(statusForValue(value, target, min)).toBe(status);
   });
 });

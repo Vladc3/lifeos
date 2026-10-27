@@ -125,8 +125,8 @@ export const cs = {
       days: "Vyber aspoň jeden den.",
       weekly: "Kolikrát týdně: 1 až 7.",
     },
-    limitNearest: (name: string, days: number) =>
-      `Máš 3 budované návyky. Další přidáš, až se některý zaběhne. Nejblíž je ${name}: nejdřív za ${days} ${plural(days, ["den", "dny", "dní"])}.`,
+    limitNearest: (name: string, gap: number, weeks: boolean) =>
+      `Máš 3 budované návyky. Další přidáš, až se některý zaběhne. Nejblíž je ${name}: nejdřív za ${gap} ${plural(gap, weeks ? ["týden", "týdny", "týdnů"] : ["den", "dny", "dní"])}.`,
     limitConsistency: (name: string) =>
       `Máš 3 budované návyky. Další přidáš, až se některý zaběhne. Nejblíž je ${name}: chybí mu konzistence 80 %.`,
     edit: "Upravit",

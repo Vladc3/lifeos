@@ -32,8 +32,8 @@ export async function limitMessage(db: Db, today: string): Promise<string> {
   );
   const nearest = nearestToEstablish(building, today);
   if (!nearest) return cs.saveError;
-  return nearest.days > 0
-    ? t.limitNearest(nearest.name, nearest.days)
+  return nearest.gap > 0
+    ? t.limitNearest(nearest.name, nearest.gap, nearest.weeks)
     : t.limitConsistency(nearest.name);
 }
 

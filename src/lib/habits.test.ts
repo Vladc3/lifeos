@@ -7,6 +7,7 @@ import {
   nearestToEstablish,
   reachesEstablished,
   habitStreak,
+  isLoggable,
   isScheduled,
   nextCellStatus,
   statusForValue,
@@ -313,16 +314,170 @@ describe("nearestToEstablish (HAB-05 hláška, PRD v0.7 P7)", () => {
         ],
         TODAY,
       ),
-    ).toEqual({ name: "Spánek", days: 6 });
+    ).toEqual({ name: "Spánek", gap: 6, weeks: false });
   });
 
   it("days 0 means only the 80 % consistency is missing", () => {
     expect(
       nearestToEstablish([{ ...daily(addDays(TODAY, -90)), name: "X" }], TODAY),
-    ).toEqual({ name: "X", days: 0 });
+    ).toEqual({ name: "X", gap: 0, weeks: false });
   });
 
   it("is null without building habits", () => {
     expect(nearestToEstablish([], TODAY)).toBeNull();
+  });
+});
+
+describe("weekly_count (X× týdně, PRD v0.7 P6)", () => {
+  const weekly = (start_date: string, weekly_target = 3): HabitRule => ({
+    frequency: "weekly_count",
+    days_mask: null,
+    weekly_target,
+    start_date,
+  });
+  // Successes per week: one char per week from `monday`, digit = done days (Mon, Tue, …).
+  function weekLogs(monday: string, perWeek: string): HabitLog[] {
+    return [...perWeek].flatMap((n, w) =>
+      Array.from({ length: Number(n) }, (_, d) => ({
+        date: addDays(monday, w * 7 + d),
+        status: "done" as const,
+        value: null,
+      })),
+    );
+  }
+  const START = "2026-09-28"; // Monday; full weeks 09-28 … 10-19, TODAY's week pending
+
+  it.each([
+    ["3333", 4, false],
+    ["3332", 3, true], // last full week missed: at risk
+    ["3322", 0, false], // two missed weeks in a row
+    ["33330", 4, false], // current week not done yet: pending
+  ])("weeks %s → streak %d, at risk %s", (perWeek, streak, atRisk) => {
+    expect(
+      habitStreak(weekly(START), [], weekLogs(START, perWeek), TODAY),
+    ).toEqual({ streak, atRisk });
+  });
+
+  it("the current week counts once it is done", () => {
+    // Wednesday of the 5th week, Mon–Wed done
+    expect(
+      habitStreak(weekly(START), [], weekLogs(START, "33333"), "2026-10-28"),
+    ).toEqual({ streak: 5, atRisk: false });
+  });
+
+  it("a partial first week counts only when done (P6)", () => {
+    const start = "2026-09-30"; // Wednesday
+    const logs = weekLogs("2026-10-05", "333");
+    expect(habitStreak(weekly(start), [], logs, TODAY)).toEqual({
+      streak: 3,
+      atRisk: false,
+    });
+    const doneFirst = [
+      ...["2026-09-30", "2026-10-01", "2026-10-02"].map((date) => ({
+        date,
+        status: "done" as const,
+        value: null,
+      })),
+      ...logs,
+    ];
+    expect(habitStreak(weekly(start), [], doneFirst, TODAY).streak).toBe(4);
+  });
+
+  it("a week with a pause counts only when done (P6)", () => {
+    const pause = [{ start_date: "2026-10-14", end_date: "2026-10-16" }];
+    // week 10-12 has 1 success and a pause → neither success nor miss
+    expect(
+      habitStreak(weekly(START), pause, weekLogs(START, "3313"), TODAY),
+    ).toEqual({ streak: 3, atRisk: false });
+  });
+
+  it("minimum counts toward the weekly target", () => {
+    const logs = weekLogs(START, "3333").map((l, i) =>
+      i % 3 === 0 ? { ...l, status: "minimum" as const } : l,
+    );
+    expect(habitStreak(weekly(START), [], logs, TODAY).streak).toBe(4);
+  });
+
+  it("weeks across the new year", () => {
+    const start = "2026-12-21";
+    expect(
+      habitStreak(weekly(start), [], weekLogs(start, "333"), "2027-01-11"),
+    ).toEqual({ streak: 3, atRisk: false });
+  });
+
+  it("every day from start can be logged, none is missed or rest", () => {
+    const statuses = dayStatuses(
+      weekly("2026-10-20"),
+      [],
+      [{ date: "2026-10-21", status: "done", value: null }],
+      "2026-10-19",
+      "2026-10-23",
+      TODAY,
+    );
+    expect([...statuses.values()]).toEqual([
+      "unscheduled",
+      "pending",
+      "done",
+      "pending",
+      "pending",
+    ]);
+    expect(isLoggable(weekly("2026-10-20"), [], "2026-10-19")).toBe(false);
+    expect(isLoggable(weekly("2026-10-20"), [], "2026-10-22")).toBe(true);
+    expect(isLoggable(daily("2026-10-20"), [], "2026-10-22")).toBe(true);
+  });
+
+  it("phase: ≥ 9 full ISO weeks and ≥ 80 % average weekly consistency (CALC-05)", () => {
+    const start = "2026-08-17"; // Monday, 10 full weeks before TODAY
+    expect(
+      reachesEstablished(
+        weekly(start, 4),
+        [],
+        weekLogs(start, "4444444444"),
+        TODAY,
+      ),
+    ).toBe(true);
+    // last 9 full weeks: 7 × 4/4 + 1/4 + 0/4 = 7.25 / 9 = 81 % vs 7 / 9 = 78 %
+    expect(
+      reachesEstablished(
+        weekly(start, 4),
+        [],
+        weekLogs(start, "4444444410"),
+        TODAY,
+      ),
+    ).toBe(true);
+    expect(
+      reachesEstablished(
+        weekly(start, 4),
+        [],
+        weekLogs(start, "4444444400"),
+        TODAY,
+      ),
+    ).toBe(false);
+    const young = "2026-09-07"; // 7 full weeks
+    expect(
+      reachesEstablished(
+        weekly(young, 4),
+        [],
+        weekLogs(young, "4444444"),
+        TODAY,
+      ),
+    ).toBe(false);
+  });
+
+  it("gap in weeks until 9 full weeks (P7)", () => {
+    expect(establishGap(weekly("2026-09-07"), TODAY)).toBe(2);
+    expect(establishGap(weekly("2026-08-17"), TODAY)).toBe(0);
+  });
+
+  it("nearestToEstablish compares in days, reports weeks for weekly habits", () => {
+    expect(
+      nearestToEstablish(
+        [
+          { ...daily(addDays(TODAY, -50)), name: "Čtení" }, // 16 days
+          { ...weekly("2026-09-07"), name: "Trénink" }, // 2 weeks = 14 days
+        ],
+        TODAY,
+      ),
+    ).toEqual({ name: "Trénink", gap: 2, weeks: true });
   });
 });

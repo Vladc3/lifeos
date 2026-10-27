@@ -32,7 +32,7 @@ import {
 import {
   dayStatuses,
   habitStreak,
-  isScheduled,
+  isLoggable,
   nextCellStatus,
   statusForValue,
   type DayStatus,
@@ -141,7 +141,7 @@ export function HabitsScreen(props: {
   }
 
   function openValue(row: Row, date: string) {
-    if (row.habit.type === "check" || !isScheduled(row.habit, row.pauses, date))
+    if (row.habit.type === "check" || !isLoggable(row.habit, row.pauses, date))
       return;
     setValueFor({ row, date });
   }
@@ -167,14 +167,19 @@ export function HabitsScreen(props: {
     // "Today" at the moment of the click, not of the render (council F3).
     const now = todayLocal(new Date());
     const { habit } = row;
-    if (!isScheduled(habit, row.pauses, date)) return;
+    if (!isLoggable(habit, row.pauses, date)) return;
     const current = row.logs.find((l) => l.date === date)?.status ?? null;
     const when = date < now ? "past" : date === now ? "today" : "future";
     const hasMinimum =
       habit.type === "check"
         ? habit.min_version !== null
         : habit.min_value !== null;
-    const next = nextCellStatus(current, when, hasMinimum);
+    const next = nextCellStatus(
+      current,
+      when,
+      hasMinimum,
+      habit.frequency === "weekly_count",
+    );
     // Count/duration: done stores the target, minimum the minimum (PRD v0.7).
     const value =
       next === "done"
@@ -290,7 +295,10 @@ export function HabitsScreen(props: {
                       {row.habit.icon} {row.habit.name}
                     </span>
                     <span className="block text-sm text-text-muted">
-                      {t.streak(row.streak, false)}
+                      {t.streak(
+                        row.streak,
+                        row.habit.frequency === "weekly_count",
+                      )}
                       {row.atRisk && (
                         <span className="text-warning"> · {t.atRisk}</span>
                       )}

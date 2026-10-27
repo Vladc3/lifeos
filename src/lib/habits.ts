@@ -47,15 +47,19 @@ export function isScheduled(
   return false;
 }
 
-/** Days that can take a log: scheduled days, or for weekly_count any active day. */
+/**
+ * Days that can take a log: scheduled days, or for weekly_count any active
+ * day up to today (it has no rest, so a future day takes nothing).
+ */
 export function isLoggable(
   habit: HabitRule,
   pauses: Pause[],
   date: string,
+  today: string,
 ): boolean {
   if (habit.frequency !== "weekly_count")
     return isScheduled(habit, pauses, date);
-  return date >= habit.start_date && !isPaused(pauses, date);
+  return date >= habit.start_date && date <= today && !isPaused(pauses, date);
 }
 
 /**
@@ -76,7 +80,8 @@ export function dayStatuses(
   const weekly = habit.frequency === "weekly_count";
   for (let date = from; date <= to; date = addDays(date, 1)) {
     const status = logged.get(date);
-    if (!isLoggable(habit, pauses, date)) result.set(date, "unscheduled");
+    if (!isLoggable(habit, pauses, date, today))
+      result.set(date, "unscheduled");
     // weekly_count: a day is never missed, only the week is (P6)
     else if (weekly)
       result.set(
@@ -110,10 +115,11 @@ function neverTwice(items: Judged[]): { streak: number; atRisk: boolean } {
     } else if (item === "missed") {
       if (!judged) atRisk = true;
       judged = true;
-      if (++missesInRow === 2) return { streak, atRisk: atRisk && streak > 0 };
+      if (++missesInRow === 2) break;
     }
   }
-  return { streak, atRisk };
+  // At risk only with something to lose (a streak of 0 can't be at risk).
+  return { streak, atRisk: atRisk && streak > 0 };
 }
 
 const judgeDay = (status: DayStatus): Judged =>
@@ -136,7 +142,7 @@ function weekResults(
         (l) =>
           (l.status === "done" || l.status === "minimum") &&
           l.date <= today &&
-          isLoggable(habit, pauses, l.date),
+          isLoggable(habit, pauses, l.date, today),
       )
       .map((l) => l.date),
   );

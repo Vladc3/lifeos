@@ -150,6 +150,8 @@ describe("habitStreak (CALC-02, CALC-03 nikdy dvakrát)", () => {
     ["dxxdd", 2, false],
     ["xrx", 0, false], // rest between misses does not save the streak
     ["drd", 2, false], // rest neither breaks nor adds
+    ["dr", 1, false], // rest right before today is not a miss
+    ["rx", 0, false], // one miss after a rest, nothing to lose: not at risk
     ["mm", 2, false], // minimum is a success
     ["dddx", 3, true], // one miss: streak kept, at risk
     ["", 0, false], // started today
@@ -397,10 +399,11 @@ describe("weekly_count (X× týdně, PRD v0.7 P6)", () => {
     expect(
       habitStreak(weekly(START), pause, weekLogs(START, "3311"), TODAY),
     ).toEqual({ streak: 2, atRisk: true });
-    // first (partial) week without success, then a missed full week
+    // first (partial) week without success, then a missed full week:
+    // streak 0, so nothing is at risk
     expect(
       habitStreak(weekly("2026-10-14"), [], weekLogs("2026-10-19", "1"), TODAY),
-    ).toEqual({ streak: 0, atRisk: true });
+    ).toEqual({ streak: 0, atRisk: false });
   });
 
   it("minimum counts toward the weekly target", () => {
@@ -433,9 +436,13 @@ describe("weekly_count (X× týdně, PRD v0.7 P6)", () => {
       "pending",
       "pending",
     ]);
-    expect(isLoggable(weekly("2026-10-20"), [], "2026-10-19")).toBe(false);
-    expect(isLoggable(weekly("2026-10-20"), [], "2026-10-22")).toBe(true);
-    expect(isLoggable(daily("2026-10-20"), [], "2026-10-22")).toBe(true);
+    expect(isLoggable(weekly("2026-10-20"), [], "2026-10-19", TODAY)).toBe(
+      false,
+    );
+    expect(isLoggable(weekly("2026-10-20"), [], "2026-10-22", TODAY)).toBe(
+      true,
+    );
+    expect(isLoggable(daily("2026-10-20"), [], "2026-10-22", TODAY)).toBe(true);
   });
 
   it("phase: ≥ 9 full ISO weeks and ≥ 80 % average weekly consistency (CALC-05)", () => {
@@ -474,6 +481,49 @@ describe("weekly_count (X× týdně, PRD v0.7 P6)", () => {
         TODAY,
       ),
     ).toBe(false);
+  });
+
+  it("a log on a paused day does not count toward the week", () => {
+    // week 10-19: 3 logs, 2 of them on paused days → 1 success, partial → skipped
+    const pause = [{ start_date: "2026-10-20", end_date: "2026-10-21" }];
+    expect(
+      habitStreak(weekly(START), pause, weekLogs(START, "3333"), TODAY),
+    ).toEqual({ streak: 3, atRisk: false });
+    // without the pause the same logs make the week a success
+    expect(
+      habitStreak(weekly(START), [], weekLogs(START, "3333"), TODAY).streak,
+    ).toBe(4);
+  });
+
+  it("8 full weeks are not enough, 9 are (CALC-05)", () => {
+    // start Mondays 8 and 9 full weeks before TODAY's week
+    expect(
+      reachesEstablished(
+        weekly("2026-08-31", 4),
+        [],
+        weekLogs("2026-08-31", "44444444"),
+        TODAY,
+      ),
+    ).toBe(false);
+    expect(
+      reachesEstablished(
+        weekly("2026-08-24", 4),
+        [],
+        weekLogs("2026-08-24", "444444444"),
+        TODAY,
+      ),
+    ).toBe(true);
+  });
+
+  it("future days of a weekly habit can't be logged and show as empty", () => {
+    expect(isLoggable(weekly("2026-10-01"), [], "2026-10-27", TODAY)).toBe(
+      false,
+    );
+    expect(
+      dayStatuses(weekly("2026-10-01"), [], [], TODAY, "2026-10-27", TODAY).get(
+        "2026-10-27",
+      ),
+    ).toBe("unscheduled");
   });
 
   it("gap in weeks until 9 full weeks (P7)", () => {

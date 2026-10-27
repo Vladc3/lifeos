@@ -141,7 +141,10 @@ export function HabitsScreen(props: {
   }
 
   function openValue(row: Row, date: string) {
-    if (row.habit.type === "check" || !isLoggable(row.habit, row.pauses, date))
+    if (
+      row.habit.type === "check" ||
+      !isLoggable(row.habit, row.pauses, date, todayLocal(new Date()))
+    )
       return;
     setValueFor({ row, date });
   }
@@ -167,7 +170,7 @@ export function HabitsScreen(props: {
     // "Today" at the moment of the click, not of the render (council F3).
     const now = todayLocal(new Date());
     const { habit } = row;
-    if (!isLoggable(habit, row.pauses, date)) return;
+    if (!isLoggable(habit, row.pauses, date, now)) return;
     const current = row.logs.find((l) => l.date === date)?.status ?? null;
     const when = date < now ? "past" : date === now ? "today" : "future";
     const hasMinimum =

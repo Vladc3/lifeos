@@ -1,4 +1,11 @@
-import type { Frequency, HabitLog, LogStatus, Pause } from "../lib/habits";
+import { addDays } from "../lib/dates";
+import {
+  reachesEstablished,
+  type Frequency,
+  type HabitLog,
+  type LogStatus,
+  type Pause,
+} from "../lib/habits";
 import type { Db } from "./types";
 
 export type HabitType = "check" | "count" | "duration";
@@ -113,4 +120,123 @@ export async function setLog(
     [habitId, date, status, value],
   );
   return "ok";
+}
+
+// CALC-06 for one habit ($1 = its id): it may come back when it is
+// established or fewer than 3 other active habits are building.
+const MAY_RETURN = `((SELECT phase FROM habits WHERE id = $1) = 'established' OR ${BUILDING_COUNT} < 3)`;
+
+/** HAB-02. The type never changes (PRD v0.7, C6): old values would mean nothing. */
+export async function updateHabit(
+  db: Db,
+  id: number,
+  input: HabitInput,
+): Promise<void> {
+  await db.execute(
+    `UPDATE habits SET name = $2, icon = $3, identity = $4, target_value = $5, unit = $6,
+       frequency = $7, days_mask = $8, weekly_target = $9, anchor = $10, min_version = $11, min_value = $12
+     WHERE id = $1`,
+    [
+      id,
+      input.name,
+      input.icon,
+      input.identity,
+      input.target_value,
+      input.unit,
+      input.frequency,
+      input.days_mask,
+      input.weekly_target,
+      input.anchor,
+      input.min_version,
+      input.min_value,
+    ],
+  );
+}
+
+/** HAB-02: a pause starts today (CALC-01: paused days are not scheduled). */
+export async function pauseHabit(
+  db: Db,
+  id: number,
+  today: string,
+): Promise<void> {
+  await db.execute(
+    "INSERT INTO habit_pauses (habit_id, start_date) VALUES ($1, $2)",
+    [id, today],
+  );
+}
+
+/**
+ * HAB-02 + CALC-06: the open pause ends yesterday; a pause started today is
+ * removed. Refused when it would be a 4th active building habit.
+ * Atomic per statement, as plugin-sql has no safe transactions (PRD Q6).
+ */
+export async function resumeHabit(
+  db: Db,
+  id: number,
+  today: string,
+): Promise<"ok" | "limit"> {
+  const yesterday = addDays(today, -1);
+  const ended = await db.execute(
+    `UPDATE habit_pauses SET end_date = $2
+     WHERE habit_id = $1 AND end_date IS NULL AND start_date <= $2 AND ${MAY_RETURN}`,
+    [id, yesterday],
+  );
+  const removed = await db.execute(
+    `DELETE FROM habit_pauses
+     WHERE habit_id = $1 AND end_date IS NULL AND start_date > $2 AND ${MAY_RETURN}`,
+    [id, yesterday],
+  );
+  return ended.rowsAffected + removed.rowsAffected > 0 ? "ok" : "limit";
+}
+
+/** HAB-02: archiving keeps all logs. */
+export async function archiveHabit(
+  db: Db,
+  id: number,
+  today: string,
+): Promise<void> {
+  await db.execute("UPDATE habits SET archived_at = $2 WHERE id = $1", [
+    id,
+    today,
+  ]);
+}
+
+/** HAB-02 + CALC-06: a paused habit does not count, so it always comes back. */
+export async function restoreHabit(
+  db: Db,
+  id: number,
+): Promise<"ok" | "limit"> {
+  const result = await db.execute(
+    `UPDATE habits SET archived_at = NULL
+     WHERE id = $1 AND (${MAY_RETURN}
+       OR EXISTS (SELECT 1 FROM habit_pauses WHERE habit_id = $1 AND end_date IS NULL))`,
+    [id],
+  );
+  return result.rowsAffected > 0 ? "ok" : "limit";
+}
+
+/**
+ * CALC-05 + HAB-06: store "established" for habits that reached it (one-way,
+ * only from building). Returns names that changed now, for a one-time notice.
+ * Call before any limit check, so CALC-06 never reads a stale phase.
+ */
+export async function syncPhases(db: Db, today: string): Promise<string[]> {
+  const [habits, logs, pauses] = await Promise.all([
+    listHabits(db),
+    listLogs(db),
+    listPauses(db),
+  ]);
+  const changed: string[] = [];
+  for (const habit of habits) {
+    if (habit.phase !== "building" || habit.archived_at) continue;
+    const own = <T extends { habit_id: number }>(rows: T[]) =>
+      rows.filter((row) => row.habit_id === habit.id);
+    if (!reachesEstablished(habit, own(pauses), own(logs), today)) continue;
+    const result = await db.execute(
+      "UPDATE habits SET phase = 'established' WHERE id = $1 AND phase = 'building'",
+      [habit.id],
+    );
+    if (result.rowsAffected > 0) changed.push(habit.name);
+  }
+  return changed;
 }

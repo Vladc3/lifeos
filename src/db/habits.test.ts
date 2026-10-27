@@ -1,9 +1,17 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { addDays } from "../lib/dates";
 import {
+  archiveHabit,
   createHabit,
   listHabits,
   listLogs,
+  listPauses,
+  pauseHabit,
+  restoreHabit,
+  resumeHabit,
   setLog,
+  syncPhases,
+  updateHabit,
   type HabitInput,
 } from "./habits";
 import { createTestDb } from "./testDb";
@@ -100,5 +108,91 @@ describe("habits repository: logs (HAB-03)", () => {
       TODAY,
       "2026-10-30",
     ]);
+  });
+});
+
+describe("habits repository: lifecycle (HAB-02, CALC-06)", () => {
+  const ids = async () => [
+    (await createHabit(db, named("A"), "2026-10-01")) as number,
+    (await createHabit(db, named("B"), "2026-10-01")) as number,
+    (await createHabit(db, named("C"), "2026-10-01")) as number,
+  ];
+
+  it("updates a habit but never its type (PRD v0.7, C6)", async () => {
+    const [a] = await ids();
+    // The form locks the type; even if another type came in, it is ignored.
+    await updateHabit(db, a, {
+      ...named("A2"),
+      type: "count",
+    });
+    expect((await listHabits(db))[0]).toMatchObject({
+      name: "A2",
+      type: "check",
+      target_value: null,
+    });
+  });
+
+  it("pauses from today and resumes with the pause ending yesterday", async () => {
+    const [a] = await ids();
+    await pauseHabit(db, a, "2026-10-20");
+    expect(await resumeHabit(db, a, TODAY)).toBe("ok");
+    expect(await listPauses(db)).toEqual([
+      { habit_id: a, start_date: "2026-10-20", end_date: "2026-10-26" },
+    ]);
+  });
+
+  it("a pause resumed the same day leaves no pause behind", async () => {
+    const [a] = await ids();
+    await pauseHabit(db, a, TODAY);
+    expect(await resumeHabit(db, a, TODAY)).toBe("ok");
+    expect(await listPauses(db)).toEqual([]);
+  });
+
+  it("resuming or restoring a 4th building habit is refused", async () => {
+    const [a, b] = await ids();
+    await pauseHabit(db, a, "2026-10-20");
+    await archiveHabit(db, b, "2026-10-21");
+    await createHabit(db, named("D"), TODAY);
+    await createHabit(db, named("E"), TODAY); // C, D, E building
+    expect(await resumeHabit(db, a, TODAY)).toBe("limit");
+    expect(await restoreHabit(db, b)).toBe("limit");
+    expect((await listPauses(db))[0].end_date).toBeNull();
+    expect((await listHabits(db)).find((h) => h.id === b)?.archived_at).toBe(
+      "2026-10-21",
+    );
+  });
+
+  it("an established habit can always come back", async () => {
+    const [a] = await ids();
+    await db.execute("UPDATE habits SET phase = 'established' WHERE id = $1", [
+      a,
+    ]);
+    await archiveHabit(db, a, TODAY);
+    await createHabit(db, named("D"), TODAY);
+    expect(await restoreHabit(db, a)).toBe("ok");
+  });
+
+  it("archiving keeps the logs (HAB-02)", async () => {
+    const [a] = await ids();
+    await setLog(db, a, "2026-10-20", "done", null, TODAY);
+    await archiveHabit(db, a, TODAY);
+    expect(await listLogs(db)).toHaveLength(1);
+  });
+});
+
+describe("syncPhases (CALC-05, HAB-06)", () => {
+  it("stores established once, returns only habits that just changed", async () => {
+    const start = "2026-08-01";
+    const id = (await createHabit(db, named("Učení"), start)) as number;
+    for (let d = start; d < TODAY; d = addDays(d, 1))
+      await setLog(db, id, d, "done", null, TODAY);
+    await createHabit(db, named("Nový"), TODAY);
+
+    expect(await syncPhases(db, TODAY)).toEqual(["Učení"]);
+    expect((await listHabits(db)).map((h) => h.phase)).toEqual([
+      "established",
+      "building",
+    ]);
+    expect(await syncPhases(db, TODAY)).toEqual([]); // one-way, said once
   });
 });

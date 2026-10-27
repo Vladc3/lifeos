@@ -6,6 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 import {
   DEMO_BUDGET,
   DEMO_LIMITS,
+  demoHabits,
   demoTransactions,
   devDbPath,
 } from "../src/lib/demo.ts";
@@ -48,6 +49,7 @@ const categories = db
   )
   .all() as { id: number; name: string; kind: "expense" | "income" }[];
 const transactions = demoTransactions(today, categories);
+const habits = demoHabits(today);
 
 // One connection, so a plain transaction is safe here (unlike plugin-sql's pool).
 db.exec("BEGIN");
@@ -67,6 +69,38 @@ try {
   );
   for (const t of transactions)
     insert.run(t.date, t.amount, t.category_id, t.note);
+  // PUB-04 habits (plan F3, E10): children first because of the foreign keys.
+  db.exec("DELETE FROM habit_logs");
+  db.exec("DELETE FROM habit_pauses");
+  db.exec("DELETE FROM habits");
+  const addHabit = db.prepare(
+    `INSERT INTO habits (name, icon, identity, type, target_value, unit, frequency, days_mask,
+       weekly_target, anchor, min_version, min_value, phase, start_date)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  const addLog = db.prepare(
+    "INSERT INTO habit_logs (habit_id, date, status, value) VALUES (?, ?, ?, ?)",
+  );
+  for (const { habit: h, logs } of habits) {
+    const { lastInsertRowid } = addHabit.run(
+      h.name,
+      h.icon,
+      h.identity,
+      h.type,
+      h.target_value,
+      h.unit,
+      h.frequency,
+      h.days_mask,
+      h.weekly_target,
+      h.anchor,
+      h.min_version,
+      h.min_value,
+      h.phase,
+      h.start_date,
+    );
+    for (const log of logs)
+      addLog.run(lastInsertRowid, log.date, log.status, log.value);
+  }
   db.exec("COMMIT");
 } catch (error) {
   db.exec("ROLLBACK");

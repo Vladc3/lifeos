@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { DEMO_LIMITS, demoTransactions, devDbPath } from "./demo";
+import { DEMO_LIMITS, demoHabits, demoTransactions, devDbPath } from "./demo";
+import { habitStreak, reachesEstablished } from "./habits";
 
 describe("devDbPath (PUB-03, PUB-04: demo jen do dev DB)", () => {
   const dev = "io.github.vladc3.lifeos.dev";
@@ -78,5 +79,62 @@ describe("demoTransactions (PUB-04)", () => {
   it("sets limits only on expense categories", () => {
     for (const name of Object.keys(DEMO_LIMITS))
       expect(["Jídlo", "Jídlo venku", "Doprava", "Zábava"]).toContain(name);
+  });
+});
+
+describe("demoHabits (PUB-04, plan F3 E10 and K table)", () => {
+  const today = "2026-10-27"; // Tuesday
+  const demo = demoHabits(today);
+  const byName = (name: string) => {
+    const found = demo.find((d) => d.habit.name === name);
+    if (!found) throw new Error(`missing demo habit ${name}`);
+    return found;
+  };
+
+  it("has 4 habits, at most 3 building (CALC-06)", () => {
+    expect(demo.map((d) => d.habit.name)).toEqual([
+      "Čtení",
+      "Trénink",
+      "Spánek do 23:00",
+      "Učení",
+    ]);
+    expect(demo.filter((d) => d.habit.phase === "building")).toHaveLength(3);
+  });
+
+  it("Čtení: started 30 days ago, all done up to yesterday → streak 30", () => {
+    const { habit, logs } = byName("Čtení");
+    expect(habit.start_date).toBe("2026-09-27");
+    expect(habitStreak(habit, [], logs, today)).toEqual({
+      streak: 30,
+      atRisk: false,
+    });
+  });
+
+  it("Spánek: missed yesterday → at risk with the streak kept", () => {
+    const { habit, logs } = byName("Spánek do 23:00");
+    expect(habitStreak(habit, [], logs, today).atRisk).toBe(true);
+    expect(habitStreak(habit, [], logs, today).streak).toBeGreaterThan(0);
+  });
+
+  it("Učení: building, but reaches established on the next sync (K9)", () => {
+    const { habit, logs } = byName("Učení");
+    expect(habit.phase).toBe("building");
+    expect(reachesEstablished(habit, [], logs, today)).toBe(true);
+  });
+
+  it("Trénink: established weekly habit with a running streak in weeks", () => {
+    const { habit, logs } = byName("Trénink");
+    expect(habit.phase).toBe("established");
+    expect(habitStreak(habit, [], logs, today).streak).toBeGreaterThanOrEqual(
+      11,
+    );
+  });
+
+  it("no log is in the future and every log is valid for its habit", () => {
+    for (const { habit, logs } of demo)
+      for (const log of logs) {
+        expect(log.date <= today, habit.name).toBe(true);
+        expect(log.date >= habit.start_date, habit.name).toBe(true);
+      }
   });
 });

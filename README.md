@@ -16,7 +16,7 @@ It also answers one question every morning: how much can I spend today?
 
 ## Status
 
-Phase 2 (finance basics, 0.2.0): log an expense or income in a few keystrokes (Ctrl+N anywhere, or "Nový výdaj" in the tray), browse transactions by month with a category filter, edit and delete them, manage categories with monthly limits, and watch the monthly budget with green, orange and red bars. Habits, goals and the Today screen come in the next phases. The UI is Czech for now; English is planned after 1.0.
+Phase 3 (habits, 0.3.0): habits from templates or your own, a monthly matrix where one click logs a day, streaks with the "never miss twice" rule, pauses, archive, at most 3 habits in the building phase and a notice when a habit becomes established. Phase 2 brought the finance basics: quick expense entry (Ctrl+N or the tray), monthly transactions and budget bars. Goals and the Today screen come next. The UI is Czech for now; English is planned after 1.0.
 
 ![Finance screen with demo data](docs/screenshots/finance.png)
 

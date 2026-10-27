@@ -3,6 +3,7 @@
 // type imports are erased.
 import type { CategoryKind } from "../db/categories";
 import type { TransactionInput } from "../db/transactions";
+import type { HabitInput } from "../db/habits";
 
 /** Total monthly budget of the demo, in haléře (15 000 Kč). */
 export const DEMO_BUDGET = 1500000;
@@ -144,4 +145,130 @@ export function demoTransactions(
     }
   }
   return result;
+}
+
+export interface DemoHabit {
+  habit: HabitInput & {
+    start_date: string;
+    phase: "building" | "established";
+  };
+  logs: { date: string; status: "done" | "minimum"; value: number | null }[];
+}
+
+const shift = (date: string, days: number) => {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+};
+const weekday = (date: string) => {
+  const [y, m, d] = date.split("-").map(Number);
+  return ((new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7) + 1; // 1 = Monday
+};
+const base: Omit<HabitInput, "name" | "icon" | "type" | "frequency"> = {
+  identity: null,
+  target_value: null,
+  unit: null,
+  days_mask: null,
+  weekly_target: null,
+  anchor: null,
+  min_version: null,
+  min_value: null,
+};
+function daysFrom(from: string, to: string, keep: (date: string) => boolean) {
+  const dates: string[] = [];
+  for (let date = from; date <= to; date = shift(date, 1))
+    if (keep(date)) dates.push(date);
+  return dates;
+}
+
+/**
+ * PUB-04 demo habits (plan F3, E10): Čtení with a 30-day streak, Trénink an
+ * established weekly habit, Spánek at risk, Učení building but ready to be
+ * established. 3 building = the CALC-06 limit is respected.
+ */
+export function demoHabits(today: string): DemoHabit[] {
+  const yesterday = shift(today, -1);
+  const reading = shift(today, -30);
+  const sleep = shift(today, -20);
+  const study = shift(today, -70);
+  const thisMonday = shift(today, 1 - weekday(today));
+  const training = shift(thisMonday, -12 * 7);
+  return [
+    {
+      habit: {
+        ...base,
+        name: "Čtení",
+        icon: "📖",
+        type: "count",
+        target_value: 10,
+        unit: "stran",
+        frequency: "daily",
+        min_version: "1 strana",
+        min_value: 1,
+        start_date: reading,
+        phase: "building",
+      },
+      logs: daysFrom(reading, yesterday, () => true).map((date, i) =>
+        i % 7 === 3
+          ? { date, status: "minimum", value: 4 }
+          : { date, status: "done", value: 10 },
+      ),
+    },
+    {
+      habit: {
+        ...base,
+        name: "Trénink",
+        icon: "🏋️",
+        type: "duration",
+        target_value: 45,
+        unit: "min",
+        frequency: "weekly_count",
+        weekly_target: 4,
+        min_version: "10 minut pohybu",
+        min_value: 10,
+        start_date: training,
+        phase: "established",
+      },
+      // Mon, Tue, Thu, Sat every week; this week only the days already past
+      logs: daysFrom(training, today, (date) =>
+        [1, 2, 4, 6].includes(weekday(date)),
+      ).map((date) => ({ date, status: "done", value: 45 })),
+    },
+    {
+      habit: {
+        ...base,
+        name: "Spánek do 23:00",
+        icon: "😴",
+        type: "check",
+        frequency: "daily",
+        min_version: "do 23:30",
+        start_date: sleep,
+        phase: "building",
+      },
+      // yesterday missed: at risk (K5)
+      logs: daysFrom(sleep, shift(today, -2), () => true).map((date, i) => ({
+        date,
+        status: i % 5 === 2 ? "minimum" : "done",
+        value: null,
+      })),
+    },
+    {
+      habit: {
+        ...base,
+        name: "Učení",
+        icon: "🎓",
+        type: "duration",
+        target_value: 90,
+        unit: "min",
+        frequency: "days",
+        days_mask: 0b0001111, // Po–Čt
+        min_version: "15 minut",
+        min_value: 15,
+        start_date: study,
+        phase: "building", // becomes established on the next sync (K9)
+      },
+      logs: daysFrom(study, yesterday, (date) => weekday(date) <= 4).map(
+        (date) => ({ date, status: "done", value: 90 }),
+      ),
+    },
+  ];
 }

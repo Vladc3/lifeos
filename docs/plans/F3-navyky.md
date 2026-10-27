@@ -122,3 +122,16 @@ Spouštěj `npm run tauri dev` po `npm run demo` (K10). Demo návyky (dnes = den
 - [ ] PUB-04 demo návyky (K10)
 - [ ] Regrese fází 1–2 (K11), týdenní návyk (K12), půlnoc (K13)
 - [ ] CI zelené, PRD v0.7 s C1–C6, tag v0.3.0
+
+## Odchylky při implementaci
+
+| Co | Proč |
+| --- | --- |
+| Validace formuláře, šablony, Ctrl+Shift+N a limit při vytvoření (E5) už v řezu A | Malé, a create by se jinak přepisoval |
+| `isLoggable` vedle `isScheduled` | `weekly_count` nemá naplánované dny, ale zapisovat jde každý aktivní den |
+| „Nikdy dvakrát“ jako jedna funkce `neverTwice` pro dny i týdny | Bez duplikace mezi `daily`/`days` a `weekly_count` |
+| Týdenní konzistence pro fázi nezapočítává pauzy (`ponytail:` v kódu) | Pozastavený týden průměr sníží. Upravit, až to bude vadit |
+| Ověřeno ve zdroji `sqlx-sqlite 0.8.6`: `$N` se páruje podle čísla | Testy na `node:sqlite` by chybu v pořadí parametrů neodhalily |
+| Commit `2ba0de6` tvrdil chycenou mutaci P6, nebyla | Opraveno testem v `13f20f0`, poučení v `docs/learning.md` |
+| Ověření UI z části automaticky: migrace 4 v app (SQLite 3.46), matice s ✓ ✓ ◐ ✓ ✗ a „4 dny · v ohrožení“, `syncPhases` po demu (Učení zaběhnuté), K10 (`stat` reálné DB beze změny) | Klikání v matici přes `wtype` nespolehlivé (kódy kláves), K1–K9, K11–K13 ručně vlastník |
+| Virtuální monitor (`hyprctl output create headless`) si vzal workspace 5, kde bylo okno vlastníka | Po odebrání monitoru se vrátilo. Příště nejdřív zvolit volné číslo workspace |

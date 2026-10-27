@@ -302,7 +302,10 @@ export function HabitsScreen(props: {
 
       {valueFor && (
         <ValueDialog
-          title={t.cell(valueFor.row.habit.name, formatDate(valueFor.date), "")}
+          title={t.valueTitle(
+            valueFor.row.habit.name,
+            formatDate(valueFor.date),
+          )}
           unit={valueFor.row.habit.unit}
           initial={
             valueFor.row.logs.find((l) => l.date === valueFor.date)?.value ??

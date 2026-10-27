@@ -1,5 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { createHabit } from "../../db/habits";
+import {
+  createHabit,
+  listHabits,
+  listPauses,
+  syncPhases,
+  updateHabit,
+  type Habit,
+} from "../../db/habits";
 import type { Db } from "../../db/types";
 import { cs } from "../../i18n/cs";
 import { todayLocal } from "../../lib/dates";
@@ -9,20 +16,58 @@ import {
   validateHabitForm,
   type HabitFormValues,
 } from "../../lib/habitForm";
+import { nearestToEstablish } from "../../lib/habits";
 import { dialogClass, useModalDialog } from "../useModalDialog";
 
 const t = cs.habits;
 
-/** HAB-01 + HAB-09: new habit, optionally from a template. */
+/** HAB-05 + P7: why the limit blocks, and which habit gets there first. */
+export async function limitMessage(db: Db, today: string): Promise<string> {
+  const [habits, pauses] = await Promise.all([listHabits(db), listPauses(db)]);
+  const building = habits.filter(
+    (h) =>
+      h.phase === "building" &&
+      !h.archived_at &&
+      !pauses.some((p) => p.habit_id === h.id && p.end_date === null),
+  );
+  const nearest = nearestToEstablish(building, today);
+  if (!nearest) return cs.saveError;
+  return nearest.days > 0
+    ? t.limitNearest(nearest.name, nearest.days)
+    : t.limitConsistency(nearest.name);
+}
+
+const formOf = (h: Habit): HabitFormValues => ({
+  name: h.name,
+  icon: h.icon,
+  identity: h.identity ?? "",
+  type: h.type,
+  target: h.target_value?.toString() ?? "",
+  unit: h.unit ?? "",
+  frequency: h.frequency,
+  daysMask: h.days_mask ?? 0,
+  weeklyTarget: h.weekly_target?.toString() ?? "",
+  anchor: h.anchor ?? "",
+  minVersion: h.min_version ?? "",
+  minValue: h.min_value?.toString() ?? "",
+});
+
+/** HAB-01 + HAB-09: new habit (optionally from a template); HAB-02: edit. */
 export function HabitDialog(props: {
   db: Db;
+  habit: Habit | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { habit } = props;
   const { ref, onCancel } = useModalDialog(props.onClose);
-  const [values, setValues] = useState<HabitFormValues>(emptyHabitForm);
+  const [values, setValues] = useState<HabitFormValues>(() =>
+    habit ? formOf(habit) : emptyHabitForm,
+  );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // P5: a frequency change recalculates the past, so it is confirmed once.
+  const [confirmFrequency, setConfirmFrequency] = useState(false);
 
   const set = (change: Partial<HabitFormValues>) =>
     setValues((v) => ({ ...v, ...change }));
@@ -35,16 +80,30 @@ export function HabitDialog(props: {
       setError(t.errors[result.error]);
       return;
     }
+    const v = result.value;
+    if (
+      habit &&
+      !confirmFrequency &&
+      (v.frequency !== habit.frequency ||
+        v.days_mask !== habit.days_mask ||
+        v.weekly_target !== habit.weekly_target)
+    ) {
+      setConfirmFrequency(true);
+      return;
+    }
     setSaving(true);
     try {
       // "Today" at the moment of saving: the app may run for days (council F3).
-      const saved = await createHabit(
-        props.db,
-        result.value,
-        todayLocal(new Date()),
-      );
+      const today = todayLocal(new Date());
+      if (habit) {
+        await updateHabit(props.db, habit.id, v);
+        props.onSaved();
+        return;
+      }
+      await syncPhases(props.db, today); // the limit must not read a stale phase
+      const saved = await createHabit(props.db, v, today);
       if (saved === "limit") {
-        setError(t.limit);
+        setError(await limitMessage(props.db, today));
         setSaving(false);
       } else props.onSaved();
     } catch {
@@ -64,10 +123,10 @@ export function HabitDialog(props: {
     >
       <form onSubmit={(e) => void submit(e)} className="space-y-4">
         <h2 id="habit-title" className="text-xl font-semibold">
-          {t.newHabit}
+          {habit ? t.editHabit : t.newHabit}
         </h2>
 
-        <label className="block">
+        <label className={habit ? "hidden" : "block"}>
           <span className="label">{t.template}</span>
           <select
             data-autofocus
@@ -116,12 +175,18 @@ export function HabitDialog(props: {
                 type="radio"
                 name="habit-type"
                 checked={values.type === type}
+                disabled={habit !== null}
                 onChange={() => set({ type })}
                 className="accent-text"
               />
               {t.types[type]}
             </label>
           ))}
+          {habit && (
+            <span className="w-full text-sm text-text-muted">
+              {t.typeLocked}
+            </span>
+          )}
         </fieldset>
 
         {measured && (
@@ -226,6 +291,11 @@ export function HabitDialog(props: {
           />
         </label>
 
+        {confirmFrequency && (
+          <p role="alert" className="text-warning">
+            {t.frequencyWarning}
+          </p>
+        )}
         {error && (
           <p role="alert" className="text-danger">
             {error}
@@ -236,7 +306,7 @@ export function HabitDialog(props: {
             {cs.transactionDialog.cancel}
           </button>
           <button type="submit" disabled={saving} className="btn btn-primary">
-            {cs.transactionDialog.save}
+            {confirmFrequency ? t.frequencyConfirm : cs.transactionDialog.save}
           </button>
         </div>
       </form>

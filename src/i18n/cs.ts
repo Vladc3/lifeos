@@ -125,7 +125,22 @@ export const cs = {
       days: "Vyber aspoň jeden den.",
       weekly: "Kolikrát týdně: 1 až 7.",
     },
-    limit: "Máš 3 budované návyky. Další přidáš, až se některý zaběhne.",
+    limitNearest: (name: string, days: number) =>
+      `Máš 3 budované návyky. Další přidáš, až se některý zaběhne. Nejblíž je ${name}: nejdřív za ${days} ${plural(days, ["den", "dny", "dní"])}.`,
+    limitConsistency: (name: string) =>
+      `Máš 3 budované návyky. Další přidáš, až se některý zaběhne. Nejblíž je ${name}: chybí mu konzistence 80 %.`,
+    edit: "Upravit",
+    pause: "Pozastavit",
+    resume: "Pokračovat",
+    archive: "Archivovat",
+    restore: "Obnovit",
+    paused: "pozastaveno",
+    archivedList: "Archivované návyky",
+    typeLocked: "Typ po založení nejde změnit.",
+    frequencyWarning:
+      "Změna frekvence přepočítá i minulé dny (série a konzistence). Uložit?",
+    frequencyConfirm: "Uložit i tak",
+    establishedNotice: (name: string) => `${name}: návyk je zaběhnutý 🎉`,
     pastRest: "Volno jde nastavit jen na dnešek a dál.",
     streak: (count: number, weeks: boolean) =>
       `${count} ${plural(count, weeks ? ["týden", "týdny", "týdnů"] : ["den", "dny", "dní"])}`,

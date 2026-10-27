@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
 import { openDb } from "./db";
+import type { Habit } from "./db/habits";
 import type { Db } from "./db/types";
 import { FinanceScreen } from "./features/finance/FinanceScreen";
 import {
@@ -26,7 +27,8 @@ export default function App() {
   const [db, setDb] = useState<Db | null>(null);
   const [dbError, setDbError] = useState<string | null>(null);
   const [dialog, setDialog] = useState<TransactionDialogState | null>(null);
-  const [habitDialog, setHabitDialog] = useState(false);
+  // HAB-01 new habit ("new") or HAB-02 edit (the habit), null = closed.
+  const [habitDialog, setHabitDialog] = useState<Habit | "new" | null>(null);
   // Bumped after every save, so screens reload their data (plan F2, E9).
   const [dataVersion, setDataVersion] = useState(0);
   // Read on every render: a window left open overnight gets the new day.
@@ -43,7 +45,7 @@ export default function App() {
       if (document.querySelector("dialog[open]")) return;
       if (isNewHabitShortcut(event)) {
         event.preventDefault();
-        setHabitDialog(true);
+        setHabitDialog("new");
         return;
       }
       if (isNewTransactionShortcut(event)) {
@@ -132,7 +134,8 @@ export default function App() {
             <HabitsScreen
               db={db}
               dataVersion={dataVersion}
-              onAdd={() => setHabitDialog(true)}
+              onAdd={() => setHabitDialog("new")}
+              onEdit={(habit) => setHabitDialog(habit)}
             />
           )
         ) : active === "settings" ? (
@@ -143,10 +146,12 @@ export default function App() {
       </main>
       {habitDialog && db && (
         <HabitDialog
+          key={habitDialog === "new" ? "new" : `edit-${habitDialog.id}`}
           db={db}
-          onClose={() => setHabitDialog(false)}
+          habit={habitDialog === "new" ? null : habitDialog}
+          onClose={() => setHabitDialog(null)}
           onSaved={() => {
-            setHabitDialog(false);
+            setHabitDialog(null);
             changed();
           }}
         />

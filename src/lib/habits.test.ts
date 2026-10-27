@@ -4,6 +4,7 @@ import {
   consistency,
   dayStatuses,
   establishGap,
+  nearestToEstablish,
   reachesEstablished,
   habitStreak,
   isScheduled,
@@ -299,5 +300,29 @@ describe("establishGap (HAB-05)", () => {
   it("days until 66 days since start, never below 0", () => {
     expect(establishGap(daily(addDays(TODAY, -60)), TODAY)).toBe(6);
     expect(establishGap(daily(addDays(TODAY, -80)), TODAY)).toBe(0);
+  });
+});
+
+describe("nearestToEstablish (HAB-05 hláška, PRD v0.7 P7)", () => {
+  it("picks the building habit with the fewest days left", () => {
+    expect(
+      nearestToEstablish(
+        [
+          { ...daily(addDays(TODAY, -40)), name: "Čtení" },
+          { ...daily(addDays(TODAY, -60)), name: "Spánek" },
+        ],
+        TODAY,
+      ),
+    ).toEqual({ name: "Spánek", days: 6 });
+  });
+
+  it("days 0 means only the 80 % consistency is missing", () => {
+    expect(
+      nearestToEstablish([{ ...daily(addDays(TODAY, -90)), name: "X" }], TODAY),
+    ).toEqual({ name: "X", days: 0 });
+  });
+
+  it("is null without building habits", () => {
+    expect(nearestToEstablish([], TODAY)).toBeNull();
   });
 });

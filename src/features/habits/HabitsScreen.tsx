@@ -6,10 +6,15 @@ import {
   type KeyboardEvent,
 } from "react";
 import {
+  archiveHabit,
   listHabits,
   listLogs,
   listPauses,
+  pauseHabit,
+  restoreHabit,
+  resumeHabit,
   setLog,
+  syncPhases,
   type Habit,
   type StoredLog,
   type StoredPause,
@@ -33,6 +38,7 @@ import {
   type DayStatus,
 } from "../../lib/habits";
 import { dialogClass, useModalDialog } from "../useModalDialog";
+import { limitMessage } from "./HabitDialog";
 
 const t = cs.habits;
 
@@ -56,6 +62,7 @@ export function HabitsScreen(props: {
   db: Db;
   dataVersion: number;
   onAdd: () => void;
+  onEdit: (habit: Habit) => void;
 }) {
   const { db, dataVersion } = props;
   const today = todayLocal(new Date());
@@ -63,6 +70,8 @@ export function HabitsScreen(props: {
   const [data, setData] = useState<Data | null>(null);
   const [version, setVersion] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
+  // HAB-06 / P4: shown once, the phase change is stored only once.
+  const [established, setEstablished] = useState<string[]>([]);
   // Tab into the matrix lands on today: the day logged most often.
   const [focus, setFocus] = useState<[number, number]>(() => [
     0,
@@ -77,10 +86,19 @@ export function HabitsScreen(props: {
 
   useEffect(() => {
     let current = true;
-    Promise.all([listHabits(db), listLogs(db), listPauses(db)]).then(
-      ([habits, logs, pauses]) => current && setData({ habits, logs, pauses }),
-      () => current && setNotice(cs.loadError),
-    );
+    // CALC-05 first, so the matrix and the limit read the current phase.
+    async function load() {
+      const names = await syncPhases(db, todayLocal(new Date()));
+      const [habits, logs, pauses] = await Promise.all([
+        listHabits(db),
+        listLogs(db),
+        listPauses(db),
+      ]);
+      if (!current) return;
+      if (names.length > 0) setEstablished((shown) => [...shown, ...names]);
+      setData({ habits, logs, pauses });
+    }
+    load().catch(() => current && setNotice(cs.loadError));
     return () => {
       current = false;
     };
@@ -105,6 +123,22 @@ export function HabitsScreen(props: {
   });
 
   type Row = (typeof rows)[number];
+
+  const isPaused = (row: Row) => row.pauses.some((p) => p.end_date === null);
+
+  // HAB-02 actions. Resume and restore may hit the limit (CALC-06, P7).
+  async function act(action: () => Promise<unknown>) {
+    setNotice(null);
+    const today = todayLocal(new Date());
+    try {
+      await syncPhases(db, today);
+      if ((await action()) === "limit")
+        setNotice(await limitMessage(db, today));
+      setVersion((v) => v + 1);
+    } catch {
+      setNotice(cs.saveError);
+    }
+  }
 
   function openValue(row: Row, date: string) {
     if (row.habit.type === "check" || !isScheduled(row.habit, row.pauses, date))
@@ -208,6 +242,11 @@ export function HabitsScreen(props: {
         </button>
       </div>
 
+      {established.map((name) => (
+        <p key={name} role="status" className="text-success">
+          {t.establishedNotice(name)}
+        </p>
+      ))}
       {notice && (
         <p role="alert" className="text-danger">
           {notice}
@@ -258,6 +297,45 @@ export function HabitsScreen(props: {
                       {row.habit.phase === "established" && (
                         <span className="text-success"> · {t.established}</span>
                       )}
+                      {isPaused(row) && <span> · {t.paused}</span>}
+                    </span>
+                    <span className="flex gap-2 text-sm">
+                      <button
+                        type="button"
+                        className="underline"
+                        onClick={() => props.onEdit(row.habit)}
+                      >
+                        {t.edit}
+                      </button>
+                      <button
+                        type="button"
+                        className="underline"
+                        onClick={() => {
+                          const today = todayLocal(new Date());
+                          void act(() =>
+                            isPaused(row)
+                              ? resumeHabit(db, row.habit.id, today)
+                              : pauseHabit(db, row.habit.id, today),
+                          );
+                        }}
+                      >
+                        {isPaused(row) ? t.resume : t.pause}
+                      </button>
+                      <button
+                        type="button"
+                        className="underline"
+                        onClick={() =>
+                          void act(() =>
+                            archiveHabit(
+                              db,
+                              row.habit.id,
+                              todayLocal(new Date()),
+                            ),
+                          )
+                        }
+                      >
+                        {t.archive}
+                      </button>
                     </span>
                   </th>
                   {days.map((day, c) => {
@@ -298,6 +376,30 @@ export function HabitsScreen(props: {
             </tbody>
           </table>
         </div>
+      )}
+
+      {data && data.habits.some((h) => h.archived_at) && (
+        <section className="space-y-2">
+          <h3 className="label">{t.archivedList}</h3>
+          <ul className="divide-y divide-border rounded-md border border-border">
+            {data.habits
+              .filter((h) => h.archived_at)
+              .map((habit) => (
+                <li key={habit.id} className="flex items-center gap-3 p-3">
+                  <span className="flex-1">
+                    {habit.icon} {habit.name}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => void act(() => restoreHabit(db, habit.id))}
+                  >
+                    {t.restore}
+                  </button>
+                </li>
+              ))}
+          </ul>
+        </section>
       )}
 
       {valueFor && (

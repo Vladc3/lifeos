@@ -200,3 +200,16 @@ export function reachesEstablished(
 export function establishGap(habit: HabitRule, today: string): number {
   return Math.max(0, ESTABLISH_DAYS - daysBetween(habit.start_date, today));
 }
+
+/** HAB-05: which building habit becomes established first (days 0 = only consistency missing). */
+export function nearestToEstablish(
+  habits: (HabitRule & { name: string })[],
+  today: string,
+): { name: string; days: number } | null {
+  let nearest: { name: string; days: number } | null = null;
+  for (const habit of habits) {
+    const days = establishGap(habit, today);
+    if (!nearest || days < nearest.days) nearest = { name: habit.name, days };
+  }
+  return nearest;
+}

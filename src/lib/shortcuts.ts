@@ -34,3 +34,14 @@ export function isNewTransactionShortcut(event: ShortcutEvent): boolean {
     event.code === "KeyN"
   );
 }
+
+/** Ctrl+Shift+N: new habit (PRD kap. 8, HAB-01). */
+export function isNewHabitShortcut(event: ShortcutEvent): boolean {
+  return (
+    event.ctrlKey &&
+    event.shiftKey &&
+    !event.altKey &&
+    !event.metaKey &&
+    event.code === "KeyN"
+  );
+}

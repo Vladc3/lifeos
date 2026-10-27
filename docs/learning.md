@@ -13,3 +13,9 @@ Zápisky po každé fázi. Krátce: co, proč, kde v kódu.
 1. **Test musí selhat ze správného důvodu.** Testy schématu „DB odmítne částku 0“ nejdřív prošly, ale jen proto, že tabulka ještě neexistovala (chyba „no such table“). Teprve `toThrow(/constraint failed/)` je přinutil selhat kvůli pravidlu (`src/db/finance.schema.test.ts`). Stejně tak schválně zanesená chyba (výpočet přes float) ukázala, že testy částek opravdu hlídají `0,29` (`src/lib/money.test.ts`).
 2. **Testy a app můžou běžet na jiné verzi stejné knihovny.** App používá SQLite 3.46 (zabalený v sqlx), testy 3.53 (Node). Zjištěno v `Cargo.lock`, proto se migrace ověřily i spuštěním app. A pozor na `NULL` v SQL: `CHECK (date(date) = date)` by pustil „26.10.2026“, protože `date()` vrátí NULL a CHECK NULL propustí. Proto `IS` (`src-tauri/migrations/0002_finance.sql`).
 3. **Událost se může ztratit, uložený stav ne.** Kliknutí na „Nový výdaj“ hned po startu by poslalo událost dřív, než ji JS poslouchá. Rust si proto kliknutí uloží a frontend si ho vyzvedne (`src-tauri/src/lib.rs`, `NewExpenseRequested`; `src/App.tsx`). Ověřeno kliknutím přes D-Bus 4,5 s po startu.
+
+## Fáze 3 – Návyky (0.3.0)
+
+1. **Výstup mutace si přečti, než něco napíšeš.** Commit `2ba0de6` tvrdil „mutace P6 chycena“, ale s rozbitým kódem prošly všechny testy. Přeskočený týden mezi úspěchy dává stejnou sérii jako vynechaný, takže testy rozdíl neviděly. Pomohl až test, kde přeskočený týden sousedí s vynechaným (`src/lib/habits.test.ts`, „a skipped week next to a miss“).
+2. **Jeden zdroj pravdy pro výpočty.** `dayStatuses` určuje stav každého dne a série, konzistence i fáze čtou jen z něj (`src/lib/habits.ts`). „Nikdy dvakrát“ je jedna funkce `neverTwice` pro dny i týdny.
+3. **Ověř knihovnu ve zdroji, ne odhadem.** Jestli sqlx páruje `$1` podle čísla, nebo podle pořadí výskytu, rozhodl kód `sqlx-sqlite/src/arguments.rs` (podle čísla). Testy na `node:sqlite` by chybu v pořadí nenašly.

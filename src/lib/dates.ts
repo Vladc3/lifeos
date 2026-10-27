@@ -40,3 +40,31 @@ export function formatDate(date: string): string {
   const [year, m, d] = date.split("-").map(Number);
   return new Intl.DateTimeFormat("cs-CZ").format(new Date(year, m - 1, d));
 }
+
+// Day arithmetic on YYYY-MM-DD through UTC: no daylight-saving shifts.
+const utc = (date: string) => {
+  const [year, m, d] = date.split("-").map(Number);
+  return new Date(Date.UTC(year, m - 1, d));
+};
+const iso = (day: Date) => day.toISOString().slice(0, 10);
+
+export function addDays(date: string, days: number): string {
+  const day = utc(date);
+  day.setUTCDate(day.getUTCDate() + days);
+  return iso(day);
+}
+
+/** 1 = Monday … 7 = Sunday (ISO, week starts on Monday). */
+export function isoWeekday(date: string): number {
+  return ((utc(date).getUTCDay() + 6) % 7) + 1;
+}
+
+/** Monday of the ISO week the date is in. */
+export function weekStart(date: string): string {
+  return addDays(date, 1 - isoWeekday(date));
+}
+
+/** Whole days from `from` to `to` (0 for the same day). */
+export function daysBetween(from: string, to: string): number {
+  return Math.round((utc(to).getTime() - utc(from).getTime()) / 86_400_000);
+}

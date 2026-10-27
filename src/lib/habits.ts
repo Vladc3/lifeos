@@ -1,7 +1,7 @@
 // Habit rules from PRD kap. 6 (CALC-01 to CALC-06) as pure functions.
 // "today" is always a parameter. dayStatuses is the single source of what a
 // day was; streak (and later consistency and phase) only read from it.
-import { addDays, isoWeekday } from "./dates";
+import { addDays, daysBetween, isoWeekday } from "./dates";
 
 export type Frequency = "daily" | "days" | "weekly_count";
 export type LogStatus = "done" | "minimum" | "missed" | "rest";
@@ -149,4 +149,54 @@ export function statusForValue(
 ): LogStatus {
   if (value >= target) return "done";
   return min !== null && value >= min ? "minimum" : "missed";
+}
+
+/**
+ * CALC-04: successful scheduled days ÷ scheduled days in the window, up to
+ * yesterday (today only once it is a success), rest days left out, rounded
+ * to whole %. null when there is no such day ("–").
+ */
+export function consistency(
+  habit: HabitRule,
+  pauses: Pause[],
+  logs: HabitLog[],
+  from: string,
+  to: string,
+  today: string,
+): number | null {
+  let scheduled = 0;
+  let successes = 0;
+  for (const [date, status] of dayStatuses(
+    habit,
+    pauses,
+    logs,
+    from,
+    to,
+    today,
+  )) {
+    if (date > today || status === "rest" || status === "unscheduled") continue;
+    if (date === today && !isSuccess(status)) continue;
+    scheduled++;
+    if (isSuccess(status)) successes++;
+  }
+  return scheduled === 0 ? null : Math.round((successes / scheduled) * 100);
+}
+
+const ESTABLISH_DAYS = 66;
+
+/** CALC-05: ≥ 66 days since start and ≥ 80 % over the last 66 days. */
+export function reachesEstablished(
+  habit: HabitRule,
+  pauses: Pause[],
+  logs: HabitLog[],
+  today: string,
+): boolean {
+  if (daysBetween(habit.start_date, today) < ESTABLISH_DAYS) return false;
+  const from = addDays(today, -(ESTABLISH_DAYS - 1));
+  return (consistency(habit, pauses, logs, from, today, today) ?? 0) >= 80;
+}
+
+/** HAB-05: days until the habit is 66 days old (0 = only consistency is missing). */
+export function establishGap(habit: HabitRule, today: string): number {
+  return Math.max(0, ESTABLISH_DAYS - daysBetween(habit.start_date, today));
 }

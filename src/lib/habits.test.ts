@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { addDays } from "./dates";
 import {
+  consistency,
   dayStatuses,
+  establishGap,
+  reachesEstablished,
   habitStreak,
   isScheduled,
   nextCellStatus,
@@ -247,5 +250,54 @@ describe("statusForValue (CALC-02, called only when a log is written)", () => {
     [0, 10, 1, "missed"],
   ] as const)("%d of %d (min %s) → %s", (value, target, min, status) => {
     expect(statusForValue(value, target, min)).toBe(status);
+  });
+});
+
+describe("consistency (CALC-04)", () => {
+  const start = "2026-10-16"; // 10 days before TODAY
+  it("successes ÷ scheduled days up to yesterday, rest not counted, rounded", () => {
+    // 16..25: d d x d r d x d d m  → 7 successes of 9 non-rest days = 78 %
+    const logs10 = logs(start, "ddxdrdxddm");
+    expect(consistency(daily(start), [], logs10, start, TODAY, TODAY)).toBe(78);
+  });
+
+  it("counts today only once it is a success", () => {
+    const l = logs(start, "dddddddddd");
+    expect(consistency(daily(start), [], l, start, TODAY, TODAY)).toBe(100);
+    const withToday = logs(start, "ddddddddxxd"); // 8 of 10 days + today done
+    expect(consistency(daily(start), [], withToday, start, TODAY, TODAY)).toBe(
+      82, // 9 of 11
+    );
+  });
+
+  it("is null without any scheduled day (shown as –)", () => {
+    expect(consistency(daily(TODAY), [], [], TODAY, TODAY, TODAY)).toBeNull();
+  });
+});
+
+describe("reachesEstablished (CALC-05, one-way)", () => {
+  // n days since start, last 66 days with `misses` scheduled misses
+  const habitWith = (daysSinceStart: number, misses: number) => {
+    const start = addDays(TODAY, -daysSinceStart);
+    const pattern = "d".repeat(daysSinceStart - misses) + "x".repeat(misses);
+    return reachesEstablished(daily(start), [], logs(start, pattern), TODAY);
+  };
+
+  it("needs 66 days since start", () => {
+    expect(habitWith(65, 0)).toBe(false);
+    expect(habitWith(66, 0)).toBe(true);
+  });
+
+  it("needs consistency ≥ 80 % over the last 66 days", () => {
+    // window = TODAY-65 .. TODAY (today pending, not counted): 65 days
+    expect(habitWith(70, 13)).toBe(true); // 52 / 65 = 80 %
+    expect(habitWith(70, 14)).toBe(false); // 51 / 65 = 78 %
+  });
+});
+
+describe("establishGap (HAB-05)", () => {
+  it("days until 66 days since start, never below 0", () => {
+    expect(establishGap(daily(addDays(TODAY, -60)), TODAY)).toBe(6);
+    expect(establishGap(daily(addDays(TODAY, -80)), TODAY)).toBe(0);
   });
 });

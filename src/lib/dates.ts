@@ -63,3 +63,8 @@ export function isoWeekday(date: string): number {
 export function weekStart(date: string): string {
   return addDays(date, 1 - isoWeekday(date));
 }
+
+/** Whole days from `from` to `to` (0 for the same day). */
+export function daysBetween(from: string, to: string): number {
+  return Math.round((utc(to).getTime() - utc(from).getTime()) / 86_400_000);
+}

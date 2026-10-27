@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   addDays,
+  daysBetween,
   formatDate,
   isoWeekday,
   formatMonth,
@@ -83,5 +84,16 @@ describe("day arithmetic (F3, CALC-01; via UTC, so no DST shift)", () => {
     ["2027-01-01", "2026-12-28"], // week across the new year
   ])("weekStart(%s) → %s (Monday)", (date, monday) => {
     expect(weekStart(date)).toBe(monday);
+  });
+});
+
+describe("daysBetween", () => {
+  it.each([
+    ["2026-10-26", "2026-10-26", 0],
+    ["2026-10-25", "2026-10-26", 1], // across the DST change
+    ["2026-08-21", "2026-10-26", 66],
+    ["2026-12-31", "2027-01-01", 1],
+  ])("%s → %s = %d", (from, to, days) => {
+    expect(daysBetween(from, to)).toBe(days);
   });
 });

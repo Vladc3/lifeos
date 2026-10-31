@@ -12,9 +12,10 @@ import {
 } from "../../db/transactions";
 import type { Db } from "../../db/types";
 import { cs } from "../../i18n/cs";
-import { budgetLevel } from "../../lib/budget";
 import { formatDate, formatMonth, monthOf, shiftMonth } from "../../lib/dates";
 import { formatMoney } from "../../lib/money";
+import { BudgetBar } from "./BudgetBar";
+import { MonthOverview } from "./MonthOverview";
 
 interface Props {
   db: Db;
@@ -29,43 +30,13 @@ interface Props {
 interface Data {
   categories: Category[];
   transactions: Transaction[];
+  monthRows: Transaction[]; // FIN-09 ignores the category filter
   expenses: MonthExpenses;
   budget: number; // settings.monthly_budget in haléře, 0 = not set
   limit: DailyLimitData | null | undefined; // null = no budget, undefined = failed
 }
 
 const t = cs.finance;
-
-const levelClass = {
-  ok: "bg-success",
-  warning: "bg-warning",
-  over: "bg-danger",
-} as const;
-
-/** FIN-04 bar: green up to 80 %, orange up to 100 %, red over. */
-function BudgetBar(props: { label: string; spent: number; limit: number }) {
-  const level = budgetLevel(props.spent, props.limit) ?? "ok";
-  const text = t.spentOf(formatMoney(props.spent), formatMoney(props.limit));
-  const width = Math.min(100, (props.spent / props.limit) * 100);
-  return (
-    <div>
-      <div className="flex justify-between gap-4 text-sm">
-        <span>{props.label}</span>
-        <span className="text-text-muted">{text}</span>
-      </div>
-      <div
-        role="img"
-        aria-label={`${props.label}: ${text}`}
-        className="mt-1 h-2 rounded-full bg-border"
-      >
-        <div
-          className={`h-2 rounded-full ${levelClass[level]}`}
-          style={{ width: `${width}%` }}
-        />
-      </div>
-    </div>
-  );
-}
 
 /** FIN-10, CALC-07. Lives here until the Today screen comes in phase 5. */
 function DailyLimitCard(props: {
@@ -129,10 +100,11 @@ export function FinanceScreen(props: Props) {
         () => true,
         () => false,
       );
-      const [categories, transactions, expenses, budget, limit] =
+      const [categories, transactions, monthRows, expenses, budget, limit] =
         await Promise.all([
           listCategories(db),
           listTransactions(db, month, filter),
+          listTransactions(db, month),
           monthExpenses(db, month),
           getSetting(db, "monthly_budget"),
           generated ? loadDailyLimit(db, today) : undefined,
@@ -142,6 +114,7 @@ export function FinanceScreen(props: Props) {
       setData({
         categories,
         transactions,
+        monthRows,
         expenses,
         budget: Number(budget) || 0,
         limit,
@@ -251,6 +224,15 @@ export function FinanceScreen(props: Props) {
             <p className="text-sm text-text-muted">{t.noCategoryLimits}</p>
           )}
         </section>
+      )}
+
+      {data && (
+        <MonthOverview
+          month={month}
+          rows={data.monthRows}
+          expenses={data.expenses}
+          categories={data.categories}
+        />
       )}
 
       {data && (

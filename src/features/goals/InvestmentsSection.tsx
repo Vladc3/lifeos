@@ -28,6 +28,7 @@ export function InvestmentsSection(props: {
   db: Db;
   today: string;
   dataVersion: number;
+  onChanged: () => void; // the overview and FIN-08 above depend on investments
 }) {
   const { db, today, dataVersion } = props;
   const [investments, setInvestments] = useState<Investment[] | null>(null);
@@ -47,7 +48,10 @@ export function InvestmentsSection(props: {
     };
   }, [db, today, dataVersion, version]);
 
-  const reload = () => setVersion((v) => v + 1);
+  const reload = () => {
+    setVersion((v) => v + 1);
+    props.onChanged();
+  };
 
   async function archive(id: number) {
     setError(null);

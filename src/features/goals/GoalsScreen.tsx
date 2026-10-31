@@ -13,6 +13,7 @@ import {
   type Goal,
   type GoalSpending,
 } from "../../db/goals";
+import { listInvestments, type Investment } from "../../db/investments";
 import { generateRecurring } from "../../db/recurring";
 import type { Db } from "../../db/types";
 import { cs } from "../../i18n/cs";
@@ -29,6 +30,7 @@ import {
 } from "../../lib/goals";
 import { formatMoney } from "../../lib/money";
 import { DepositDialog } from "./DepositDialog";
+import { FinanceOverview } from "./FinanceOverview";
 import { GoalDialog } from "./GoalDialog";
 import { InvestmentsSection } from "./InvestmentsSection";
 
@@ -38,6 +40,7 @@ interface Data {
   goals: Goal[];
   spending: GoalSpending; // this month
   last: GoalSpending; // last month, for the finished result
+  investments: Investment[];
   limit: DailyLimitData | null | undefined; // null = no budget, undefined = failed
 }
 
@@ -154,15 +157,16 @@ export function GoalsScreen(props: {
         () => false,
       );
       const month = monthOf(today);
-      const [goals, spending, last, limit] = await Promise.all([
+      const [goals, spending, last, investments, limit] = await Promise.all([
         listGoals(db, month),
         goalSpending(db, month),
         goalSpending(db, shiftMonth(month, -1)),
+        listInvestments(db, month),
         generated ? loadDailyLimit(db, today) : undefined,
       ]);
       if (!current) return;
       setError(generated ? null : cs.recurring.generateError);
-      setData({ goals, spending, last, limit });
+      setData({ goals, spending, last, investments, limit });
     }
     load().catch(() => current && setError(cs.loadError));
     return () => {
@@ -298,6 +302,14 @@ export function GoalsScreen(props: {
 
   return (
     <div className="max-w-3xl space-y-6">
+      {data && (
+        <FinanceOverview
+          goals={goals}
+          investments={data.investments}
+          spending={data.spending}
+          budget={data.limit?.budget ?? 0}
+        />
+      )}
       <div className="flex justify-end">
         <button
           type="button"
@@ -320,7 +332,12 @@ export function GoalsScreen(props: {
           {goals.map((goal, index) => card(goal, index, data))}
         </ul>
       )}
-      <InvestmentsSection db={db} today={today} dataVersion={dataVersion} />
+      <InvestmentsSection
+        db={db}
+        today={today}
+        dataVersion={dataVersion}
+        onChanged={reload}
+      />
       {depositing && (
         <DepositDialog
           key={depositing.id}

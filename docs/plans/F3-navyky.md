@@ -112,16 +112,16 @@ Spouštěj `npm run tauri dev` po `npm run demo` (K10). Demo návyky (dnes = den
 
 ## Akceptace
 
-- [ ] HAB-01 + HAB-09 vytvoření a šablony (K7)
-- [ ] HAB-02 úprava, pauza, archiv (K8)
-- [ ] HAB-03 matice (K1–K4, K6)
-- [ ] HAB-04 série a v ohrožení (K5)
-- [ ] HAB-05 limit 3 (K7)
-- [ ] HAB-06 přechod fáze (K9)
-- [ ] CALC-01 až 06 s testy (T2, T3)
-- [ ] PUB-04 demo návyky (K10)
-- [ ] Regrese fází 1–2 (K11), týdenní návyk (K12), půlnoc (K13)
-- [ ] CI zelené, PRD v0.7 s C1–C6, tag v0.3.0
+- [x] HAB-01 + HAB-09 vytvoření a šablony (K7)
+- [x] HAB-02 úprava, pauza, archiv (K8)
+- [x] HAB-03 matice (K1–K4, K6)
+- [x] HAB-04 série a v ohrožení (K5)
+- [x] HAB-05 limit 3 (K7)
+- [x] HAB-06 přechod fáze (K9)
+- [x] CALC-01 až 06 s testy (T2, T3)
+- [x] PUB-04 demo návyky (K10)
+- [x] Regrese fází 1–2 (K11), týdenní návyk (K12), půlnoc (K13)
+- [x] CI zelené, PRD v0.7 s C1–C6, tag v0.3.0
 
 ## Odchylky při implementaci
 

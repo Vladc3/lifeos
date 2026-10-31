@@ -7,6 +7,7 @@ import {
   DEMO_BUDGET,
   DEMO_LIMITS,
   demoHabits,
+  demoRecurring,
   demoTransactions,
   devDbPath,
 } from "../src/lib/demo.ts";
@@ -49,12 +50,16 @@ const categories = db
   )
   .all() as { id: number; name: string; kind: "expense" | "income" }[];
 const transactions = demoTransactions(today, categories);
+const recurring = demoRecurring(today, categories);
 const habits = demoHabits(today);
 
 // One connection, so a plain transaction is safe here (unlike plugin-sql's pool).
 db.exec("BEGIN");
 try {
+  // Plan F4, E13: runs too, otherwise the months would never be generated again.
+  db.exec("DELETE FROM recurring_runs");
   db.exec("DELETE FROM transactions");
+  db.exec("DELETE FROM recurring");
   db.exec("UPDATE categories SET monthly_budget = 0");
   const limit = db.prepare(
     "UPDATE categories SET monthly_budget = ? WHERE name = ? AND kind = 'expense'",
@@ -69,6 +74,17 @@ try {
   );
   for (const t of transactions)
     insert.run(t.date, t.amount, t.category_id, t.note);
+  const addRecurring = db.prepare(
+    "INSERT INTO recurring (name, amount, category_id, day_of_month, first_month) VALUES (?, ?, ?, ?, ?)",
+  );
+  for (const r of recurring)
+    addRecurring.run(
+      r.name,
+      r.amount,
+      r.category_id,
+      r.day_of_month,
+      r.first_month,
+    );
   // PUB-04 habits (plan F3, E10): children first because of the foreign keys.
   db.exec("DELETE FROM habit_logs");
   db.exec("DELETE FROM habit_pauses");

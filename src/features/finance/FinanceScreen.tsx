@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { listCategories, type Category } from "../../db/categories";
+import { generateRecurring } from "../../db/recurring";
 import { getSetting } from "../../db/settings";
 import {
   deleteTransaction,
@@ -65,7 +66,7 @@ function BudgetBar(props: { label: string; spent: number; limit: number }) {
 }
 
 export function FinanceScreen(props: Props) {
-  const { db, dataVersion } = props;
+  const { db, dataVersion, today } = props;
   const [month, setMonth] = useState(() => monthOf(props.today));
   const [filter, setFilter] = useState<number | null>(null);
   const [data, setData] = useState<Data | null>(null);
@@ -74,28 +75,32 @@ export function FinanceScreen(props: Props) {
 
   useEffect(() => {
     let current = true; // ignore answers for a month the user already left
-    Promise.all([
-      listCategories(db),
-      listTransactions(db, month, filter),
-      monthExpenses(db, month),
-      getSetting(db, "monthly_budget"),
-    ]).then(
-      ([categories, transactions, expenses, budget]) => {
-        if (!current) return;
-        setError(null);
-        setData({
-          categories,
-          transactions,
-          expenses,
-          budget: Number(budget) || 0,
-        });
-      },
-      () => current && setError(cs.loadError),
-    );
+    async function load() {
+      // CALC-11 first, so the reads see the new payments. If it fails, the rest still shows.
+      const generated = await generateRecurring(db, today).then(
+        () => true,
+        () => false,
+      );
+      const [categories, transactions, expenses, budget] = await Promise.all([
+        listCategories(db),
+        listTransactions(db, month, filter),
+        monthExpenses(db, month),
+        getSetting(db, "monthly_budget"),
+      ]);
+      if (!current) return;
+      setError(generated ? null : cs.recurring.generateError);
+      setData({
+        categories,
+        transactions,
+        expenses,
+        budget: Number(budget) || 0,
+      });
+    }
+    load().catch(() => current && setError(cs.loadError));
     return () => {
       current = false;
     };
-  }, [db, month, filter, dataVersion]);
+  }, [db, month, filter, dataVersion, today]);
 
   async function remove(id: number) {
     try {

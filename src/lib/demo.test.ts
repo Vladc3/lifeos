@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { DEMO_LIMITS, demoHabits, demoTransactions, devDbPath } from "./demo";
+import {
+  DEMO_LIMITS,
+  demoHabits,
+  demoRecurring,
+  demoTransactions,
+  devDbPath,
+} from "./demo";
 import { habitStreak, reachesEstablished } from "./habits";
 
 describe("devDbPath (PUB-03, PUB-04: demo jen do dev DB)", () => {
@@ -165,5 +171,41 @@ describe("demoHabits gives the K-table numbers on every weekday (dev-team QA)", 
     expect(
       study && reachesEstablished(study.habit, [], study.logs, today),
     ).toBe(true);
+  });
+});
+
+describe("demoRecurring (PUB-04, plan F4, E13)", () => {
+  const categories = [
+    { id: 1, name: "Jídlo", kind: "expense" as const },
+    { id: 8, name: "Předplatné", kind: "expense" as const },
+  ];
+
+  it("has Předplatné on day 5, founded two months ago", () => {
+    expect(demoRecurring("2026-10-26", categories)).toEqual([
+      {
+        name: "Předplatné",
+        amount: 25900,
+        category_id: 8,
+        day_of_month: 5,
+        first_month: "2026-08",
+      },
+    ]);
+  });
+
+  it("crosses the year", () => {
+    expect(demoRecurring("2027-01-10", categories)[0].first_month).toBe(
+      "2026-11",
+    );
+  });
+
+  it("skips a missing category", () => {
+    expect(demoRecurring("2026-10-26", [categories[0]])).toEqual([]);
+  });
+
+  it("the old Předplatné rule is gone, the app generates it now", () => {
+    const ids = [...categories];
+    expect(
+      demoTransactions("2026-10-26", ids).filter((t) => t.category_id === 8),
+    ).toEqual([]);
   });
 });

@@ -15,7 +15,11 @@ export const cs = {
   placeholder: "Tenhle modul přijde v některé z dalších fází.",
   dbError: "Databázi se nepodařilo otevřít.",
   settings: {
-    tabs: { finance: "Rozpočet a kategorie", system: "Systém" },
+    tabs: {
+      finance: "Rozpočet a kategorie",
+      recurring: "Opakované platby",
+      system: "Systém",
+    },
     autostart: "Spouštět po přihlášení",
     autostartError: "Spouštění po přihlášení teď nejde zjistit ani změnit.",
     budget: "Celkový měsíční rozpočet (Kč)",
@@ -46,7 +50,10 @@ export const cs = {
       color: "Vyber barvu.",
       budget: "Limit musí být kladná částka, nejvýš 2 desetinná místa.",
       nameTaken: "Aktivní kategorie s tímto názvem už existuje.",
-      inUse: "Kategorie má transakce, smazat ji nejde. Můžeš ji archivovat.",
+      inUse:
+        "Kategorii používají transakce nebo opakované platby, smazat ji nejde. Můžeš ji archivovat.",
+      kindLocked:
+        "Kategorii používá aktivní opakovaná platba, typ změnit nejde. Platbu nejdřív archivuj.",
     },
     kindChange: (count: number) =>
       `Změní se i ${count} ${transactionsWord(count)} této kategorie. Pokračovat?`,
@@ -90,6 +97,30 @@ export const cs = {
       amount: "Zadej částku větší než 0, nejvýš 2 desetinná místa.",
       category: "Vyber kategorii.",
       date: "Zadej platné datum.",
+    },
+  },
+  recurring: {
+    title: "Opakované platby",
+    add: "Přidat platbu",
+    newPayment: "Nová opakovaná platba",
+    editPayment: "Upravit opakovanou platbu",
+    empty:
+      "Zatím tu nemáš žádnou opakovanou platbu. Přidej třeba nájem nebo předplatné.",
+    name: "Název",
+    day: "Den v měsíci",
+    dayHint:
+      "1–31. Když den v měsíci není, platba je poslední den. První platba bude nejdřív dnes.",
+    everyMonth: (day: number) => `každý ${day}.`,
+    edit: "Upravit",
+    archive: "Archivovat",
+    archived: "Archivované",
+    editHint: "Změna platí pro další platby, už zapsané transakce se nemění.",
+    generateError: "Opakované platby se nepodařilo doplnit.",
+    errors: {
+      name: "Zadej název, nejvýš 40 znaků.",
+      amount: "Zadej částku větší než 0, nejvýš 2 desetinná místa.",
+      category: "Vyber kategorii.",
+      day: "Zadej den 1 až 31.",
     },
   },
   habits: {

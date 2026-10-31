@@ -9,6 +9,7 @@ import {
   updateCategory,
   type CategoryInput,
 } from "./categories";
+import { archiveRecurring, createRecurring } from "./recurring";
 import { createTransaction } from "./transactions";
 import { createTestDb, must } from "./testDb";
 import type { Db } from "./types";
@@ -131,5 +132,58 @@ describe("categories repository (FIN-03)", () => {
     });
     expect(await deleteCategory(db, food)).toBe("in_use");
     expect(await countTransactions(db, food)).toBe(1);
+  });
+});
+
+describe("categories used by recurring payments (plan F4, E8)", () => {
+  const payment = (category_id: number) => ({
+    name: "Nájem",
+    amount: 900000,
+    category_id,
+    day_of_month: 25,
+  });
+
+  it("cannot delete a category of a payment that has no transactions yet", async () => {
+    const { id } = await byName("Jídlo");
+    await createRecurring(db, payment(id), "2026-11-01");
+    expect(await countTransactions(db, id)).toBe(0);
+    expect(await deleteCategory(db, id)).toBe("in_use");
+  });
+
+  it("cannot delete a category of an archived payment", async () => {
+    const { id } = await byName("Jídlo");
+    await createRecurring(db, payment(id), "2026-11-01");
+    await archiveRecurring(db, 1, "2026-11-02");
+    expect(await deleteCategory(db, id)).toBe("in_use");
+  });
+
+  it("locks the kind while an active payment uses the category", async () => {
+    const category = await byName("Jídlo");
+    await createRecurring(db, payment(category.id), "2026-11-01");
+    expect(
+      await updateCategory(db, category.id, { ...category, kind: "income" }),
+    ).toBe("kind_locked");
+    expect((await byName("Jídlo")).kind).toBe("expense");
+  });
+
+  it("other edits stay possible while a payment uses the category", async () => {
+    const category = await byName("Jídlo");
+    await createRecurring(db, payment(category.id), "2026-11-01");
+    expect(
+      await updateCategory(db, category.id, { ...category, icon: "🍎" }),
+    ).toBe("ok");
+  });
+
+  it("an archived payment does not lock the kind", async () => {
+    const category = await byName("Jídlo");
+    await createRecurring(db, payment(category.id), "2026-11-01");
+    await archiveRecurring(db, 1, "2026-11-02");
+    expect(
+      await updateCategory(db, category.id, {
+        ...category,
+        kind: "income",
+        monthly_budget: 0,
+      }),
+    ).toBe("ok");
   });
 });

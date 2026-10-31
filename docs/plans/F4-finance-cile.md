@@ -46,7 +46,7 @@ Opakované platby, které se doplní samy, tři typy cílů s vklady a prioritou
 
 | # | Změna | Proč |
 | --- | --- | --- |
-| D1 | Q6 pro CALC-11 vyřešena triggerem. `recurring.first_month` (`YYYY-MM`) místo `created_at`: první měsíc, jehož upravené datum (31. → 28. 2.) je při založení ≥ dnes. Určí se jednou a nejde měnit | UTC, výchozí volba |
+| D1 | Q6 pro CALC-11 vyřešena triggerem. `recurring.first_month` (`YYYY-MM`) místo `created_at`: první měsíc, jehož upravené datum (31. → 28. 2.) je při založení ≥ dnes. Určí se jednou a nejde měnit. FIN-05 „při spuštění app“ znamená načtení Finance a Cíle a návrat do okna, spuštění samotné přibude s Dnes ve fázi 5 | UTC, výchozí volba |
 | D2 | Nový FIN-12 Investice: účet (název, ikona, aktuální hodnota, měsíční vklad), přidat, upravit, archivovat. Vklad není výdaj a zvýší hodnotu, hodnotu jde přepsat. Rozšíření kap. 2, tabulky `investments`, `investment_deposits` | R2 |
 | D3 | CALC-07 nově: `P` = Σ cíle max(plán, vklady tento měsíc) + Σ investice max(plán, vklady tento měsíc) + `U`. Plán spořicího cíle = příspěvek CALC-08, pozastavený, splněný a archivovaný cíl má plán 0, archivovaná investice také. Vklady tohoto měsíce se počítají vždy. `U` = opakované výdaje, které tento měsíc ještě nemají běh, mají datum > dnes a tento měsíc ≥ `first_month`, + vygenerované výdaje tohoto měsíce s datem ≥ dnes. `dnešní výdaje` je bez vygenerovaných. Příjmy do `U` nikdy nevstupují | R5, R6. Bez druhé části by nájem v den platby ukázal −6 500 Kč |
 | D4 | FIN-07: splnění se počítá ze všech vkladů včetně tohoto měsíce, smazání vkladu nebo zvýšení cílové částky ho může zrušit. CALC-08 `saved` zůstává beze změny | Rozpor CALC-08 × FIN-07 |
@@ -114,10 +114,10 @@ Opakované platby, které se doplní samy, tři typy cílů s vklady a prioritou
 | CALC-11 | založeno 20., den 5 | první platba příští měsíc |
 | CALC-11 | založeno 20. 11., den 5, běh 5. 12., 10. 12. změna na den 25 | listopad nevznikne, prosinec jeden běh |
 | CALC-11 | 10. 12. změna z 25 na 5 před během | prosinec jedna transakce 5. 12. |
-| CALC-11 | zastaralý vstup dvakrát (SQL pojistka, ne filtr) | jedna transakce |
+| CALC-11 | zastaralý vstup dvakrát (SQL pojistka, ne filtr); dvě generování naráz | jedna transakce |
 | CALC-11 | smazaná a upravená platba | nevrátí se, nezmění se |
 | CALC-11 | app dva měsíce neběžela, pak archivace; pak úprava částky | vynechané měsíce vzniknou před archivací; se starou částkou |
-| Kategorie | změna typu s aktivní platbou; smazání s platbou nebo cílem | `kind_locked`; `in_use` |
+| Kategorie | změna typu s aktivní platbou; smazání s platbou (i archivovanou) nebo cílem | `kind_locked`; `in_use` |
 | Migrace | naplněná DB verze 4 → 5, 6, 7 | data zůstanou |
 
 ## Úkoly (svislé řezy)
@@ -154,7 +154,7 @@ Demo (dnes = den spuštění):
 | # | Kontrola | Postup | Očekávaný výsledek |
 | --- | --- | --- | --- |
 | K1 | Nová platba | Nastavení → Opakované platby: Test 100 Kč, den = dnešní; Test2 100 Kč, den = včerejší (1. v měsíci přeskoč); Finance | Test má transakci s dnešním datem, Test2 tento měsíc žádnou |
-| K2 | Generování na 3.46 | Po demu otevřít Finance, přepnout měsíce; `sqlite3 ~/.config/io.github.vladc3.lifeos.dev/life-os.db "SELECT (SELECT count(*) FROM recurring_runs), (SELECT count(*) FROM transactions WHERE recurring_id IS NOT NULL)"`; „Ukončit“, znovu spustit, Finance, stejný dotaz | Předplatné podle tabulky demo; dvě stejná čísla; po znovuspuštění beze změny |
+| K2 | Generování na 3.46 | Po demu otevřít Finance, přepnout měsíce; `sqlite3 ~/.config/io.github.vladc3.lifeos.dev/life-os.db "SELECT (SELECT count(*) FROM recurring_runs), (SELECT count(*) FROM transactions WHERE recurring_id IS NOT NULL)"`; „Ukončit“, znovu spustit, Finance, stejný dotaz; pak přepnout do jiného okna, `sqlite3 ~/.config/io.github.vladc3.lifeos.dev/life-os.db "UPDATE transactions SET amount = amount + 10000 WHERE recurring_id IS NOT NULL"` a vrátit se do app | Předplatné podle tabulky demo; dvě stejná čísla; po znovuspuštění beze změny; po návratu je útrata měsíce o 100 Kč vyšší bez kliknutí (focus) |
 | K3 | Úprava, smazání, archiv | Upravit platbu Test na 200 Kč; smazat její transakci, přepnout modul a zpět; archivovat; nová kategorie + platba s pozdějším dnem, kategorii smazat a změnit na příjem | Transakce zůstane 100 Kč; smazaná se nevrátí; platba zmizí ze seznamu; kategorie nejde smazat ani změnit |
 | K4 | Spořicí cíl | Cíle: Přidat, Výlet 30 000 Kč, termín v měsíci za 6 měsíců; druhý cíl s prošlým termínem; platným termínem uložit, pozastavit, archivovat | Výlet 4 285,72 Kč; prošlý termín formulář odmítne; pozastavený nemá příspěvek; archivovaný zmizí |
 | K5 | Vklady a termín | Po demu: do Dovolené vložit 25 000 Kč; smazat vklad; u Kurzu „Prodloužit termín“ na 1. den za 2 měsíce | Hned „splněno“; po smazání příspěvek 3 571,43 Kč; Kurz bez varování, příspěvek 166,67 Kč |
@@ -187,3 +187,10 @@ Demo (dnes = den spuštění):
 - [ ] CALC-07 až CALC-11 s testy
 - [ ] Demo a regrese (K11)
 - [ ] CI zelené, PRD v0.8 s D1–D8, tag v0.4.0
+
+## Odchylky a poznámky z implementace
+
+| Řez | Poznámka |
+| --- | --- |
+| T1 | Dev-team před kódem přidal: souběžné generování, kategorii s archivovanou platbou, přesun data vygenerované platby, upgrade z verze 4, zobrazení obsahu Finance i při selhání generování. Mutace: 15 z 15 chycených testy nebo během skriptu, `OR IGNORE` jen ve spojení s odebráním `NOT EXISTS` (sám je neškodný) |
+| T1 | V app ověřeno: migrace 5 přes sqlx, 3 platby a 3 běhy po demu i po restartu, `focus` načte změnu z DB, záložka Nastavení vykreslená. Formulář přidání ověří K1 ručně, automatizace kláves nebyla spolehlivá |

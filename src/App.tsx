@@ -83,6 +83,14 @@ export default function App() {
       );
   }, []);
 
+  // The app lives in the tray for days: coming back reloads the data and
+  // generates the payments that came due meanwhile (plan F4, E2).
+  useEffect(() => {
+    const refresh = () => setDataVersion((v) => v + 1);
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, []);
+
   const changed = () => setDataVersion((v) => v + 1);
 
   return (

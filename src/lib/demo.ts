@@ -81,12 +81,6 @@ const RULES: Rule[] = [
     on: (day) => day === 12 || day === 24,
     amount: (_day, month) => 34900 + month * 5000,
   },
-  {
-    category: "Předplatné",
-    on: (day) => day === 3,
-    amount: () => 25900,
-    note: "streaming",
-  },
   { category: "Sport a gym", on: (day) => day === 2, amount: () => 89000 },
   {
     category: "Oblečení",
@@ -145,6 +139,34 @@ export function demoTransactions(
     }
   }
   return result;
+}
+
+export interface DemoRecurring {
+  name: string;
+  amount: number;
+  category_id: number;
+  day_of_month: number;
+  first_month: string;
+}
+
+/** Plan F4, E13: day 5 has no other demo expense. The app generates the transactions. */
+export function demoRecurring(
+  today: string,
+  categories: DemoCategory[],
+): DemoRecurring[] {
+  const category = categories.find((c) => c.name === "Předplatné");
+  if (!category) return [];
+  const [year, month] = today.split("-").map(Number);
+  const index = year * 12 + (month - 1) - 2;
+  return [
+    {
+      name: "Předplatné",
+      amount: 25900,
+      category_id: category.id,
+      day_of_month: 5,
+      first_month: `${Math.floor(index / 12)}-${pad((index % 12) + 1)}`,
+    },
+  ];
 }
 
 export interface DemoHabit {

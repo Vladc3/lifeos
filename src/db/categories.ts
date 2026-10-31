@@ -53,12 +53,27 @@ export async function createCategory(
   return result.lastInsertId as number;
 }
 
+// Plan F4, E8: an active recurring expense must not silently become income.
+async function kindLocked(
+  db: Db,
+  id: number,
+  kind: CategoryKind,
+): Promise<boolean> {
+  const rows = await db.select<unknown[]>(
+    `SELECT 1 FROM recurring r JOIN categories c ON c.id = r.category_id
+     WHERE c.id = $1 AND c.kind <> $2 AND r.archived_at IS NULL`,
+    [id, kind],
+  );
+  return rows.length > 0;
+}
+
 /** Changing the kind also changes the kind of its transactions (PRD v0.6, FIN-03). */
 export async function updateCategory(
   db: Db,
   id: number,
   input: CategoryInput,
-): Promise<"ok" | "name_taken"> {
+): Promise<"ok" | "name_taken" | "kind_locked"> {
+  if (await kindLocked(db, id, input.kind)) return "kind_locked";
   if (await nameTaken(db, input.name, input.kind, id)) return "name_taken";
   await db.execute(
     "UPDATE categories SET name = $1, icon = $2, color = $3, kind = $4, monthly_budget = $5 WHERE id = $6",
@@ -102,12 +117,17 @@ export async function restoreCategory(
   return "ok";
 }
 
-/** FIN-03: a category with transactions cannot be deleted, only archived. */
+/** FIN-03: a used category cannot be deleted, only archived. Archived payments use it too. */
 export async function deleteCategory(
   db: Db,
   id: number,
 ): Promise<"ok" | "in_use"> {
-  if ((await countTransactions(db, id)) > 0) return "in_use";
+  const payments = await db.select<unknown[]>(
+    "SELECT 1 FROM recurring WHERE category_id = $1",
+    [id],
+  );
+  if (payments.length > 0 || (await countTransactions(db, id)) > 0)
+    return "in_use";
   await db.execute("DELETE FROM categories WHERE id = $1", [id]);
   return "ok";
 }

@@ -81,8 +81,8 @@ Spouštěj `npm run tauri dev` po `npm run demo` (K10). Demo návyky (dnes = den
 | Demo návyk | Typ, frekvence | Řada posledních dní | Očekáváno |
 | --- | --- | --- | --- |
 | Čtení | počet 10 stran, min 1, denně, start před 30 dny | D-30 až D-1 samé ✓ | série 30, dnes čeká |
-| Trénink | čas 45 min, min 10, 4× týdně, start před 12 týdny, `established` | celé minulé týdny splněné, tento týden 2× | série = počet celých týdnů, tento týden čeká |
-| Spánek do 23:00 | ano/ne, denně | … ✓ ✓ ✗ (D-1) | v ohrožení, série beze změny |
+| Trénink | čas 45 min, min 10, 4× týdně, start před 12 týdny, `established` | celé minulé týdny 4×, tento týden prázdný | série 12 týdnů, tento týden čeká |
+| Spánek do 23:00 | ano/ne, denně, start před 20 dny | D-20 až D-2 ✓, D-1 nic | série 19 dní · v ohrožení |
 | Učení | čas 90 min, Po–Čt, start před 70 dny, `building` | konzistence posledních 66 dní ≥ 80 % | po načtení „zaběhnuté“ + hláška |
 
 | # | Kontrola | Postup | Očekávaný výsledek |
@@ -91,14 +91,14 @@ Spouštěj `npm run tauri dev` po `npm run demo` (K10). Demo návyky (dnes = den
 | K2 | Cyklus | Čtení dnes: klikat dál | minimum (1) → volno → prázdné, série se mění podle CALC-02 |
 | K3 | Přesná hodnota | Čtení dnes: pravý klik (nebo Shift+Enter) → 7 → Enter; pak znovu → 0 → Enter | 7: „minimum“ (≥ 1, < 10). 0: záznam zmizí, dnes čeká |
 | K4 | Minulost a budoucnost | Klik na včera u Spánku (opakovaně); klik na zítřek | Včera: splnil → minimum → prázdné (= vynechal), nikdy volno. Zítra: jen volno ↔ prázdné |
-| K5 | V ohrožení | Spánek | Oranžově „v ohrožení“, série stejná jako před ✗ |
+| K5 | V ohrožení | Spánek | Oranžově „v ohrožení“, série 19 dní |
 | K6 | Klávesnice | Tab do matice, šipky, Enter, Shift+Enter | Fokus je vidět, Enter cykluje, Shift+Enter otevře dialog |
-| K7 | Limit (HAB-05) | Po K9 (Učení zaběhnuté): Ctrl+Shift+N (fyzicky) → šablona Pitný režim → Uložit; pak Ctrl+Shift+N → vlastní návyk „Meditace“ → Uložit | Pitný režim projde (3 budované). Meditace zablokovaná: důvod, nejbližší návyk a počet dní nebo text podle P7 |
-| K8 | Pauza, archiv, úprava | Čtení: pozastavit → matice; zrušit pauzu; upravit frekvenci na Po–Pá → varování; pole typu je zamčené; archivovat → obnovit | Pozastavený nemá naplánované dny a série se nemění; po archivaci jsou záznamy zpět. Obnova může narazit na limit (P7) |
+| K7 | Limit (HAB-05) | Po K9 (Učení zaběhnuté): Ctrl+Shift+N (fyzicky) → šablona Pitný režim → Uložit; pak Ctrl+Shift+N → vlastní návyk „Meditace“ → Uložit | Pitný režim projde (3 budované). Meditace zablokovaná: „Nejblíž je Čtení: nejdřív za 36 dní.“ |
+| K8 | Pauza, archiv, úprava | Čtení: pozastavit → matice; zrušit pauzu; upravit frekvenci na Po–Pá → varování; pole typu je zamčené; archivovat → pod maticí Obnovit | Pozastavený nemá naplánované dny a série se nemění; po obnově jsou záznamy zpět a archivované dny nejsou vynechané |
 | K9 | Přechod fáze | Otevřít Návyky po demu | Hláška „Učení je zaběhnuté“ jen jednou, po přepnutí modulu znovu nevyskočí |
 | K10 | Demo | `npm run demo`; `stat -c %Y ~/.config/io.github.vladc3.lifeos/life-os.db` před a po | Návyky podle tabulky výše, finance demo stejné jako ve fázi 2, reálná DB beze změny |
 | K11 | Regrese | Ctrl+N, Ctrl+1–6, lišta (pravý klik) Otevřít / Nový výdaj / Ukončit | Vše jako ve fázi 2 |
-| K12 | Týdenní návyk | Trénink: v matici klik na 2 další dny tohoto týdne | Tento týden splněný (4×), série +1 týden; volno se nenabízí |
+| K12 | Týdenní návyk | Trénink: klik na dnešek; klik na zítřek | Dnes ✓ (tento týden 1 ze 4), série 12 týdnů beze změny, volno se nenabízí. Budoucí dny jsou prázdné a na klik nereagují |
 | K13 | Půlnoc | Nechat app běžet přes půlnoc, pak klik na včerejší buňku | Volno se nenabízí, „dnes“ je nový den |
 
 ## Rizika
@@ -133,5 +133,8 @@ Spouštěj `npm run tauri dev` po `npm run demo` (K10). Demo návyky (dnes = den
 | Týdenní konzistence pro fázi nezapočítává pauzy (`ponytail:` v kódu) | Pozastavený týden průměr sníží. Upravit, až to bude vadit |
 | Ověřeno ve zdroji `sqlx-sqlite 0.8.6`: `$N` se páruje podle čísla | Testy na `node:sqlite` by chybu v pořadí parametrů neodhalily |
 | Commit `2ba0de6` tvrdil chycenou mutaci P6, nebyla | Opraveno testem v `13f20f0`, poučení v `docs/learning.md` |
+| Dev-team review hotové fáze: archiv jako pauza (PRD v0.7) | Po obnově by se archivované dny počítaly jako vynechané. Archivace teď otevře pauzu, obnova ji ukončí a hlídá limit |
+| Dev-team review: „v ohrožení“ jen při sérii > 0, opravy UI | „0 dní · v ohrožení“ nedávalo smysl. Hláška o zaběhnutí se ve StrictMode ztrácela, fokus matice mohl vypadnout z tabulátoru, lišta překrývala dialog návyku |
+| Zůstává na později | Pro fázi 6: `consistency` u `weekly_count` počítá dny, ne týdny (HAB-08 a REV-02 musí použít týdenní průměr). Pro fázi 5: pravidlo CALC-06 je v SQL i v `limitMessage`, HAB-10 ho musí upravit na obou místech. Hláška o zaběhnutí při vytvoření návyku se neukáže (odznak „zaběhnutý“ ano) |
 | Ověření UI z části automaticky: migrace 4 v app (SQLite 3.46), matice s ✓ ✓ ◐ ✓ ✗ a „4 dny · v ohrožení“, `syncPhases` po demu (Učení zaběhnuté), K10 (`stat` reálné DB beze změny) | Klikání v matici přes `wtype` nespolehlivé (kódy kláves), K1–K9, K11–K13 ručně vlastník |
 | Virtuální monitor (`hyprctl output create headless`) si vzal workspace 5, kde bylo okno vlastníka | Po odebrání monitoru se vrátilo. Příště nejdřív zvolit volné číslo workspace |

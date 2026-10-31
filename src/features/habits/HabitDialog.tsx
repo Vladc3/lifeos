@@ -129,7 +129,7 @@ export function HabitDialog(props: {
         <label className={habit ? "hidden" : "block"}>
           <span className="label">{t.template}</span>
           <select
-            data-autofocus
+            data-autofocus={habit ? undefined : true}
             defaultValue=""
             onChange={(e) => {
               const template = HABIT_TEMPLATES[Number(e.target.value)];
@@ -159,6 +159,7 @@ export function HabitDialog(props: {
           <label className="block flex-1">
             <span className="label">{t.name}</span>
             <input
+              data-autofocus={habit ? true : undefined}
               value={values.name}
               maxLength={40}
               onChange={(e) => set({ name: e.target.value })}

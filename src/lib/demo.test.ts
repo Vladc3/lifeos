@@ -138,3 +138,32 @@ describe("demoHabits (PUB-04, plan F3 E10 and K table)", () => {
       }
   });
 });
+
+describe("demoHabits gives the K-table numbers on every weekday (dev-team QA)", () => {
+  it.each([
+    "2026-10-26",
+    "2026-10-27",
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30",
+    "2026-10-31",
+    "2026-11-01",
+  ])("%s", (today) => {
+    const streaks = Object.fromEntries(
+      demoHabits(today).map(({ habit, logs }) => [
+        habit.name,
+        habitStreak(habit, [], logs, today),
+      ]),
+    );
+    expect(streaks).toEqual({
+      Čtení: { streak: 30, atRisk: false },
+      Trénink: { streak: 12, atRisk: false }, // this week empty, still open
+      "Spánek do 23:00": { streak: 19, atRisk: true },
+      Učení: expect.any(Object),
+    });
+    const study = demoHabits(today).find((d) => d.habit.name === "Učení");
+    expect(
+      study && reachesEstablished(study.habit, [], study.logs, today),
+    ).toBe(true);
+  });
+});

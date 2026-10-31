@@ -175,6 +175,11 @@ export async function resumeHabit(
   id: number,
   today: string,
 ): Promise<"ok" | "limit"> {
+  const open = await db.select<unknown[]>(
+    "SELECT 1 FROM habit_pauses WHERE habit_id = $1 AND end_date IS NULL",
+    [id],
+  );
+  if (open.length === 0) return "ok"; // not paused (e.g. a stale double click)
   const yesterday = addDays(today, -1);
   const ended = await db.execute(
     `UPDATE habit_pauses SET end_date = $2
@@ -189,7 +194,10 @@ export async function resumeHabit(
   return ended.rowsAffected + removed.rowsAffected > 0 ? "ok" : "limit";
 }
 
-/** HAB-02: archiving keeps all logs. */
+/**
+ * HAB-02: archiving keeps all logs, and the archived days are a pause, so a
+ * restored habit does not count them as missed (dev-team review F3).
+ */
 export async function archiveHabit(
   db: Db,
   id: number,
@@ -199,20 +207,30 @@ export async function archiveHabit(
     id,
     today,
   ]);
+  await db.execute(
+    `INSERT INTO habit_pauses (habit_id, start_date)
+     SELECT $1, $2 WHERE NOT EXISTS
+       (SELECT 1 FROM habit_pauses WHERE habit_id = $1 AND end_date IS NULL)`,
+    [id, today],
+  );
 }
 
-/** HAB-02 + CALC-06: a paused habit does not count, so it always comes back. */
+/**
+ * HAB-02 + CALC-06: restore and resume (the archive pause ends yesterday).
+ * Refused when it would be a 4th active building habit.
+ */
 export async function restoreHabit(
   db: Db,
   id: number,
+  today: string,
 ): Promise<"ok" | "limit"> {
   const result = await db.execute(
-    `UPDATE habits SET archived_at = NULL
-     WHERE id = $1 AND (${MAY_RETURN}
-       OR EXISTS (SELECT 1 FROM habit_pauses WHERE habit_id = $1 AND end_date IS NULL))`,
+    `UPDATE habits SET archived_at = NULL WHERE id = $1 AND ${MAY_RETURN}`,
     [id],
   );
-  return result.rowsAffected > 0 ? "ok" : "limit";
+  if (result.rowsAffected === 0) return "limit";
+  // ponytail: two statements; a single user can't race them, a pool could in theory
+  return resumeHabit(db, id, today);
 }
 
 /**

@@ -94,9 +94,10 @@ export function HabitsScreen(props: {
         listLogs(db),
         listPauses(db),
       ]);
-      if (!current) return;
+      // Before the current check: the phase is stored only once, so a cancelled
+      // load (StrictMode runs this twice) must not lose the one-time notice.
       if (names.length > 0) setEstablished((shown) => [...shown, ...names]);
-      setData({ habits, logs, pauses });
+      if (current) setData({ habits, logs, pauses });
     }
     load().catch(() => current && setNotice(cs.loadError));
     return () => {
@@ -131,7 +132,8 @@ export function HabitsScreen(props: {
     setNotice(null);
     const today = todayLocal(new Date());
     try {
-      await syncPhases(db, today);
+      const names = await syncPhases(db, today);
+      if (names.length > 0) setEstablished((shown) => [...shown, ...names]);
       if ((await action()) === "limit")
         setNotice(await limitMessage(db, today));
       setVersion((v) => v + 1);
@@ -200,6 +202,10 @@ export function HabitsScreen(props: {
     }
   }
 
+  // The focused cell may vanish (shorter month, archived row): keep one Tab stop.
+  const focusRow = Math.min(focus[0], Math.max(rows.length - 1, 0));
+  const focusColumn = Math.min(focus[1], days.length - 1);
+
   // Roving tabindex: one Tab stop for the whole matrix, arrows move inside.
   function onGridKey(event: KeyboardEvent) {
     const moves: Record<string, [number, number]> = {
@@ -211,8 +217,8 @@ export function HabitsScreen(props: {
     const move = moves[event.key];
     if (!move) return;
     event.preventDefault();
-    const r = Math.max(0, Math.min(rows.length - 1, focus[0] + move[0]));
-    const c = Math.max(0, Math.min(days.length - 1, focus[1] + move[1]));
+    const r = Math.max(0, Math.min(rows.length - 1, focusRow + move[0]));
+    const c = Math.max(0, Math.min(days.length - 1, focusColumn + move[1]));
     setFocus([r, c]);
     grid.current
       ?.querySelector<HTMLButtonElement>(`[data-cell="${r}-${c}"]`)
@@ -357,7 +363,9 @@ export function HabitsScreen(props: {
                         <button
                           type="button"
                           data-cell={`${r}-${c}`}
-                          tabIndex={focus[0] === r && focus[1] === c ? 0 : -1}
+                          tabIndex={
+                            focusRow === r && focusColumn === c ? 0 : -1
+                          }
                           onFocus={() => setFocus([r, c])}
                           onClick={() => void cycle(row, day)}
                           onContextMenu={(event) => {
@@ -403,7 +411,11 @@ export function HabitsScreen(props: {
                   <button
                     type="button"
                     className="btn"
-                    onClick={() => void act(() => restoreHabit(db, habit.id))}
+                    onClick={() =>
+                      void act(() =>
+                        restoreHabit(db, habit.id, todayLocal(new Date())),
+                      )
+                    }
                   >
                     {t.restore}
                   </button>

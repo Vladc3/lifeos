@@ -228,8 +228,8 @@ export function demoHabits(today: string): DemoHabit[] {
         start_date: training,
         phase: "established",
       },
-      // Mon, Tue, Thu, Sat every week; this week only the days already past
-      logs: daysFrom(training, today, (date) =>
+      // Mon, Tue, Thu, Sat every full week; this week stays empty for K12
+      logs: daysFrom(training, shift(thisMonday, -1), (date) =>
         [1, 2, 4, 6].includes(weekday(date)),
       ).map((date) => ({ date, status: "done", value: 45 })),
     },

@@ -94,7 +94,8 @@ export const cs = {
   },
   habits: {
     add: "Přidat návyk (Ctrl+Shift+N)",
-    empty: "Zatím tu nemáš žádný návyk. Začni šablonou nebo vlastním.",
+    empty:
+      "Zatím tu nemáš žádný návyk. Tlačítkem Přidat návyk si vyber šablonu nebo založ vlastní.",
     newHabit: "Nový návyk",
     editHabit: "Upravit návyk",
     template: "Šablona",

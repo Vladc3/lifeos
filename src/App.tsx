@@ -69,8 +69,9 @@ export default function App() {
       invoke<boolean>("take_new_expense").then(
         (requested) =>
           requested &&
-          // Never replace an open dialog: an edit would turn into a duplicate.
-          setDialog((open) => open ?? { mode: "new", kind: "expense" }),
+          // Never replace or cover an open dialog: an edit would turn into a duplicate.
+          !document.querySelector("dialog[open]") &&
+          setDialog({ mode: "new", kind: "expense" }),
         () => undefined, // not in Tauri (npm run dev in a browser)
       );
     const unlisten = listen("new-expense", () => void take());

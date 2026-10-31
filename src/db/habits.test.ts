@@ -155,7 +155,7 @@ describe("habits repository: lifecycle (HAB-02, CALC-06)", () => {
     await createHabit(db, named("D"), TODAY);
     await createHabit(db, named("E"), TODAY); // C, D, E building
     expect(await resumeHabit(db, a, TODAY)).toBe("limit");
-    expect(await restoreHabit(db, b)).toBe("limit");
+    expect(await restoreHabit(db, b, TODAY)).toBe("limit");
     expect((await listPauses(db))[0].end_date).toBeNull();
     expect((await listHabits(db)).find((h) => h.id === b)?.archived_at).toBe(
       "2026-10-21",
@@ -169,7 +169,7 @@ describe("habits repository: lifecycle (HAB-02, CALC-06)", () => {
     ]);
     await archiveHabit(db, a, TODAY);
     await createHabit(db, named("D"), TODAY);
-    expect(await restoreHabit(db, a)).toBe("ok");
+    expect(await restoreHabit(db, a, TODAY)).toBe("ok");
   });
 
   it("archiving keeps the logs (HAB-02)", async () => {
@@ -194,5 +194,24 @@ describe("syncPhases (CALC-05, HAB-06)", () => {
       "building",
     ]);
     expect(await syncPhases(db, TODAY)).toEqual([]); // one-way, said once
+  });
+});
+
+describe("archive keeps the archived days out of the streak (dev-team review)", () => {
+  it("archived days are not missed after restore; restore resumes", async () => {
+    const id = (await createHabit(db, named("Čtení"), "2026-10-01")) as number;
+    for (let d = "2026-10-01"; d <= "2026-10-10"; d = addDays(d, 1))
+      await setLog(db, id, d, "done", null, TODAY);
+    await archiveHabit(db, id, "2026-10-11");
+    expect(await restoreHabit(db, id, "2026-10-21")).toBe("ok");
+    // archived 11..20 = a pause, restore ends it yesterday
+    expect(await listPauses(db)).toEqual([
+      { habit_id: id, start_date: "2026-10-11", end_date: "2026-10-20" },
+    ]);
+  });
+
+  it("resuming a habit that is not paused is just ok", async () => {
+    const id = (await createHabit(db, named("Čtení"), "2026-10-01")) as number;
+    expect(await resumeHabit(db, id, TODAY)).toBe("ok");
   });
 });

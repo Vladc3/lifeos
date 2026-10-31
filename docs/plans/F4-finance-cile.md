@@ -196,8 +196,8 @@ Demo (dnes = den spuštění):
 | T1 | V app ověřeno: migrace 5 přes sqlx, 3 platby a 3 běhy po demu i po restartu, `focus` načte změnu z DB, záložka Nastavení vykreslená. Formulář přidání ověří K1 ručně, automatizace kláves nebyla spolehlivá |
 | T2 | Mutace 14 z 14 chycených testy. V app ověřena migrace 6 a demo Dovolená. Obrazovka Cíle se při automatické kontrole nevykreslila (okno nešlo zaostřit), první vykreslení ověří K4 ručně |
 | T3 | Mutace odhalily 3 díry v testech (smazání všech vkladů, součet přes všechny cíle, stav cizího cíle). Kód byl správně, testy doplněny, 10 z 10 chycených. Vykreslení dialogu vkladů ověří K5 ručně |
-| T4 | Mutace 12 z 12, jedna výsledek nemění (max přes účty, id rostou v celé tabulce). Díra v součtu měsíce doplněna testem. Migrace 7 proběhla v app vlastníka |
-| T5 | Mutace 27 z 27, jedna výsledek nemění (filtr měsíce běhů). Díra se staršími vklady archivovaných položek doplněna testem |
-| T6 | Mutace 19 z 19 po doplnění testů výdaje dnes a budoucího měsíce |
-| T7 | Recharts 3.10.1 přesně. Skill dataviz nešel prověřit, soubor nebyl na disku, proto nepoužit a barvy jsou z tématu. Mutace výpočtů 7 z 7. Grafy ověří K10 ručně |
+| T4 | Mutace: 11 z 12 chycených, 12. výsledek nemění (max přes účty, id rostou v celé tabulce). Díra v součtu měsíce doplněna testem. Migrace 7 proběhla v app vlastníka |
+| T5 | Mutace: 26 z 27 chycených, 27. výsledek nemění (filtr měsíce běhů). Díra se staršími vklady archivovaných položek doplněna testem |
+| T6 | Mutace: 19 z 19 chycených po doplnění testů výdaje dnes a budoucího měsíce |
+| T7 | Recharts 3.10.1 přesně. Skill dataviz nešel prověřit, soubor nebyl na disku, proto nepoužit a barvy jsou z tématu. Mutace výpočtů: 7 z 7 chycených. Grafy ověří K10 ručně |
 | T8 | Verze a dokumenty hotové. Vykreslení obrazovek T2–T7 zatím neviděl nikdo, K1–K11 čekají na vlastníka |

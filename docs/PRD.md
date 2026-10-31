@@ -1,6 +1,6 @@
 # Life OS – PRD
 
-Verze 0.6 · 2026-10-26 · vlastník: Vova
+Verze 0.7 · 2026-10-27 · vlastník: Vova
 
 ## 1. Přehled
 
@@ -78,10 +78,10 @@ App se používá ráno (plán dne, kolik můžu utratit) a večer (dopsat návy
 | ID | Požadavek | Akceptační kritérium |
 | --- | --- | --- |
 | HAB-01 | Vytvoření vlastního návyku. Pole: název, ikona, identita, typ (ano/ne / počet / čas), cílová hodnota + jednotka, frekvence (denně / vybrané dny / X× týdně), kotva, minimální verze (text), minimální hodnota (u typu počet/čas) | Povinné: název (1–40 znaků), typ, frekvence. U typu počet/čas je povinná cílová hodnota > 0. Minimální hodnota je volitelná, 0 < min < cíl |
-| HAB-02 | Úprava, pozastavení a archivace návyku | Pozastavený návyk nemá naplánované dny a jeho série se nemění. Archivace nemaže záznamy. Archivované návyky jsou v samostatném seznamu a jdou obnovit |
-| HAB-03 | Měsíční matice: řádky = návyky, sloupce = dny | Buňka ukazuje stav (splnil / minimum / vynechal / volno / čeká / nenaplánováno). Klik cykluje stavy. Budoucí naplánované dny jde nastavit jen na volno (CALC-02), jinak nejdou upravit. Přepínání měsíců |
+| HAB-02 | Úprava, pozastavení a archivace návyku | Pozastavený návyk nemá naplánované dny a jeho série se nemění. Archivace nemaže záznamy. Archivované návyky jsou v samostatném seznamu a jdou obnovit. Změna frekvence přepočítá minulost (s varováním), změna cíle ne (stav se ukládá při zápisu). Typ po založení nejde změnit. Archivované dny se počítají jako pauza, obnova návyk rovnou spustí (limit CALC-06 platí) |
+| HAB-03 | Měsíční matice: řádky = návyky, sloupce = dny | Buňka ukazuje stav (splnil / minimum / vynechal / volno / čeká / nenaplánováno). Klik cykluje stavy. Budoucí naplánované dny jde nastavit jen na volno (CALC-02), jinak nejdou upravit. Přepínání měsíců. Cyklus kliku: prázdné → splnil → minimum → prázdné, u dneška a budoucích naplánovaných dní navíc volno (budoucí jen volno ↔ prázdné). U počtu/času splnil = cílová hodnota, minimum = `min_value`; přesné číslo pravým klikem nebo Shift+Enter (0 záznam smaže) |
 | HAB-04 | Série (streak) u každého návyku | Podle CALC-02 a CALC-03. Stav „v ohrožení“ je vizuálně odlišený |
-| HAB-05 | Limit 3 návyků ve fázi budování | Podle CALC-06. Při pokusu o 4. se zobrazí důvod a nejmenší počet dní, který nejbližšímu návyku zbývá do zaběhnutí (66 − stáří návyku ve dnech) |
+| HAB-05 | Limit 3 návyků ve fázi budování | Podle CALC-06. Při pokusu o 4. se zobrazí důvod a nejmenší počet dní, který nejbližšímu návyku zbývá do zaběhnutí (66 − stáří návyku ve dnech). Když nejbližší návyk má ≥ 66 dní, ale konzistenci pod 80 %, místo čísla text o chybějící konzistenci; u `weekly_count` v týdnech do 9 |
 | HAB-06 | Fáze návyku: budování → zaběhnutý | Podle CALC-05. Přechod se uživateli oznámí |
 | HAB-07 | Ranní a večerní check-in: systémová notifikace ve 2 nastavených časech (výchozí 7:30 a 21:00) | Obsah podle CALC-12. Každý check-in jde v Nastavení vypnout. Klik na notifikaci otevře Dnes. Max 1 ranní a 1 večerní za den. Když app v daný čas neběžela, check-in se dodatečně neposílá. Funguje na Windows i Linuxu |
 | HAB-08 | Statistiky | Konzistence měsíce v % (CALC-04), trend konzistence po dnech, top 5 návyků, hlasy pro identitu (počet úspěšných dní na identitu za měsíc) |
@@ -113,12 +113,12 @@ Všechny výpočty jsou čisté funkce v `src/lib`, každé pravidlo má vlastn�
 
 **Návyky**
 
-- **CALC-01 Naplánovaný den.** `daily` = každý den. `days` = den, jehož den v týdnu je v `days_mask`. `weekly_count` = vyhodnocuje se po týdnech (viz níže). Dny před `created_at` a dny v pozastavení nejsou naplánované.
+- **CALC-01 Naplánovaný den.** `daily` = každý den. `days` = den, jehož den v týdnu je v `days_mask`. `weekly_count` = vyhodnocuje se po týdnech (viz níže). Dny před `start_date` (lokální datum založení) a dny v pozastavení nejsou naplánované.
 - **CALC-02 Úspěch a série.** Úspěch = stav `done` nebo `minimum`. U typu počet/čas je `done`, když `value ≥ target_value`, a `minimum`, když `min_value ≤ value < target_value`. Menší hodnota (nebo chybějící `min_value`) není úspěch. Série = počet úspěšných naplánovaných dní v řadě, končící dnes (pokud je dnes úspěch), jinak včera. Stav `rest` sérii nepřeruší ani nezvýší. `rest` jde nastavit jen dopředu, tj. pro dnešek nebo budoucí naplánovaný den. Minulý den na `rest` změnit nejde (vynechání nejde zpětně omluvit). Naplánovaný den v minulosti bez záznamu = `missed`. Dnešek bez záznamu = `pending` a nepočítá se.
-- **CALC-03 Nikdy dvakrát.** Jeden `missed` sérii nepřeruší, jen ji nezvýší a návyk je ve stavu `at_risk`, dokud nepřijde další úspěch. Dva naplánované dny `missed` za sebou (nepočítají se `rest` a nenaplánované dny mezi nimi) = série 0. Příklad: ✓ ✓ ✗ ✓ = série 3, ✓ ✓ ✗ ✗ = série 0.
+- **CALC-03 Nikdy dvakrát.** Jeden `missed` sérii nepřeruší, jen ji nezvýší a návyk je ve stavu `at_risk`, dokud nepřijde další úspěch. Dva naplánované dny `missed` za sebou (nepočítají se `rest` a nenaplánované dny mezi nimi) = série 0. Příklad: ✓ ✓ ✗ ✓ = série 3, ✓ ✓ ✗ ✗ = série 0. `at_risk` platí jen při sérii větší než 0.
 - **CALC-04 Konzistence.** Úspěšné naplánované dny ÷ naplánované dny v období do včerejška včetně (dnes jen když už je úspěch) × 100, zaokrouhleno na celá %. Dny `rest` se nepočítají do jmenovatele. 0 naplánovaných dní = „–“.
-- **weekly\_count.** Týden je úspěšný, když má ≥ `weekly_target` úspěchů. Série a CALC-03 se počítají v týdnech, probíhající týden je `pending`. Konzistence týdne = min(úspěchy, cíl) ÷ cíl.
-- **CALC-05 Fáze.** Návyk je `building`, dokud neplatí zároveň: od `created_at` uplynulo ≥ 66 dní a konzistence za posledních 66 dní je ≥ 80 %. Pak je `established`. U `weekly_count` místo toho: od `created_at` uplynulo ≥ 9 celých ISO týdnů a průměrná konzistence týdne za posledních 9 celých týdnů je ≥ 80 %. Přechod je jednosměrný, proto se uloží do `habits.phase` ve chvíli, kdy podmínka poprvé platí.
+- **weekly\_count.** Týden je úspěšný, když má ≥ `weekly_target` úspěchů. Série a CALC-03 se počítají v týdnech, probíhající týden je `pending`. Konzistence týdne = min(úspěchy, cíl) ÷ cíl. Neúplný týden (týden založení, týden s pauzou) se počítá jen, když je splněný; nesplněný není `missed`.
+- **CALC-05 Fáze.** Návyk je `building`, dokud neplatí zároveň: od `start_date` uplynulo ≥ 66 dní a konzistence za posledních 66 dní je ≥ 80 %. Pak je `established`. U `weekly_count` místo toho: od `start_date` uplynulo ≥ 9 celých ISO týdnů a průměrná konzistence týdne za posledních 9 celých týdnů je ≥ 80 %. Přechod je jednosměrný, proto se uloží do `habits.phase` ve chvíli, kdy podmínka poprvé platí.
 - **CALC-06 Limit budování.** Aktivních (ne pozastavených, ne archivovaných) návyků ve fázi `building` může být max 3. Vytvoření, obnovení nebo zrušení pozastavení 4. je zablokované. Automatický návyk HAB-10 se do limitu nepočítá.
 
 **Finance** (všechny částky v haléřích)
@@ -139,7 +139,7 @@ SQLite, jeden soubor `life-os.db` v Tauri app config dir (NFR-03). Vývojová a 
 
 | Tabulka | Sloupce | Poznámka |
 | --- | --- | --- |
-| habits | name, icon, identity, type (`check` / `count` / `duration`), target\_value, unit, frequency (`daily` / `days` / `weekly_count`), days\_mask, weekly\_target, anchor, min\_version, min\_value, auto\_rule (`null` / `no_spend`), phase (`building` / `established`), archived\_at | days\_mask = bitová maska Po–Ne. phase se mění jen podle CALC-05 |
+| habits | name, start\_date, icon, identity, type (`check` / `count` / `duration`), target\_value, unit, frequency (`daily` / `days` / `weekly_count`), days\_mask, weekly\_target, anchor, min\_version, min\_value, auto\_rule (`null` / `no_spend`, od fáze 5), phase (`building` / `established`), archived\_at | days\_mask = bitová maska Po–Ne. phase se mění jen podle CALC-05 |
 | habit\_pauses | habit\_id, start\_date, end\_date | Pro CALC-01, end\_date null = stále pozastaveno |
 | habit\_logs | habit\_id, date, value, status (`done` / `minimum` / `missed` / `rest`), note | UNIQUE(habit\_id, date). Automatický návyk sem nezapisuje (CALC-10) |
 | daily\_tasks | date, title, done, position | Max 3 na date |
@@ -233,7 +233,7 @@ Každá fáze končí spustitelnou verzí, zelenými testy a tagem verze.
 | --- | --- | --- |
 | 1 Kostra | 0.1.0 | Tauri + React projekt, sidebar, design tokeny, SQLite + migrační systém, tabulka settings, CI s lintem a testy, NFR-09, SYS-01 (bez Nového výdaje a časovače), SYS-02, SYS-03, PUB-01 až PUB-03. Plán: `docs/plans/F1-kostra.md` |
 | 2 Finance základ | 0.2.0 | FIN-01 až FIN-04, výchozí kategorie, PUB-04 (transakce a kategorie), SYS-01 Nový výdaj. Plán: `docs/plans/F2-finance.md` |
-| 3 Návyky | 0.3.0 | HAB-01 až HAB-06, HAB-09, CALC-01 až CALC-06 |
+| 3 Návyky | 0.3.0 | HAB-01 až HAB-06, HAB-09, CALC-01 až CALC-06. Plán: `docs/plans/F3-navyky.md` |
 | 4 Finance a cíle | 0.4.0 | FIN-05 až FIN-11, CALC-07 až CALC-11 |
 | 5 Dnes | 0.5.0 | ONB-01 až ONB-05, DNE-01 až DNE-06, HAB-07, HAB-10, CALC-12 |
 | 6 Dokončení | 1.0.0 | HAB-08, REV-01 až REV-03, NFR-05, NFR-06, release build Windows + Linux |
@@ -280,6 +280,15 @@ Rozhodnout před fází, ve které se používají. Do té doby se neimplementuj
 Vyřešené ve v0.5: Q4 SQL testy ve Vitest proti `node:sqlite` v paměti se stejnými migracemi (plán fáze 1, D1).
 
 Vyřešené ve v0.4: Q1 `rest` jen dopředu (CALC-02), Q2 `min_value` (CALC-02), Q3 fáze u `weekly_count` (CALC-05), Q5 review kdykoli zpětně (REV-01).
+
+## Změny ve verzi 0.7
+
+Podle schváleného plánu fáze 3 (`docs/plans/F3-navyky.md`, C1–C6):
+
+- Kap. 7 a CALC-01/05: `habits.start_date` (lokální datum) místo UTC `created_at`. `auto_rule` až s HAB-10.
+- HAB-02: změna frekvence přepočítá minulost, cíl ne, typ nejde změnit. HAB-03: cyklus kliku a přesné číslo.
+- HAB-05: text místo čísla, když chybí konzistence. weekly\_count: neúplný týden se počítá jen splněný.
+- HAB-02: archiv funguje jako pauza. CALC-03: `at_risk` jen při sérii > 0 (dev-team review hotové fáze).
 
 ## Změny ve verzi 0.6
 

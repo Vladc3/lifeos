@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isNewHabitShortcut,
   isNewTransactionShortcut,
   moduleForShortcut,
   type ShortcutEvent,
@@ -59,5 +60,19 @@ describe("isNewTransactionShortcut (PRD kap. 8: Ctrl+N, FIN-01)", () => {
     ["Ctrl+1", press("Digit1")],
   ])("%s není nová transakce", (_label, event) => {
     expect(isNewTransactionShortcut(event)).toBe(false);
+  });
+});
+
+describe("isNewHabitShortcut (PRD kap. 8: Ctrl+Shift+N, HAB-01)", () => {
+  it("is Ctrl+Shift+N by physical key", () => {
+    expect(isNewHabitShortcut(press("KeyN", { shiftKey: true }))).toBe(true);
+  });
+
+  it.each([
+    ["Ctrl+N (nová transakce)", press("KeyN")],
+    ["Shift+N bez Ctrl", press("KeyN", { ctrlKey: false, shiftKey: true })],
+    ["Ctrl+Shift+Alt+N", press("KeyN", { shiftKey: true, altKey: true })],
+  ])("%s není nový návyk", (_label, event) => {
+    expect(isNewHabitShortcut(event)).toBe(false);
   });
 });

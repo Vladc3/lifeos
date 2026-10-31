@@ -182,6 +182,33 @@ describe("deposits (FIN-07)", () => {
     expect(await achievedAt()).toBe("2020-01-02");
   });
 
+  it("deleting a deposit keeps the others", async () => {
+    await createGoal(db, small);
+    await createGoal(db, small);
+    await addDeposit(db, 1, { date: "2026-10-05", amount: 100 }, "2026-10-05");
+    await addDeposit(db, 1, { date: "2026-10-06", amount: 200 }, "2026-10-06");
+    await addDeposit(db, 2, { date: "2026-10-07", amount: 300 }, "2026-10-07");
+    await deleteDeposit(db, 1, 1, "2026-10-08");
+    expect((await listDeposits(db, 1)).map((d) => d.amount)).toEqual([200]);
+    expect((await listDeposits(db, 2)).map((d) => d.amount)).toEqual([300]);
+  });
+
+  it("counts only the goal's own deposits", async () => {
+    await createGoal(db, { ...small, target_amount: 5000 });
+    await createGoal(db, small);
+    await addDeposit(db, 1, { date: "2026-10-05", amount: 4000 }, "2026-10-05");
+    await addDeposit(db, 2, { date: "2026-10-05", amount: 1 }, "2026-10-05");
+    expect(must((await listGoals(db, "2026-10"))[1]).achieved_at).toBeNull();
+  });
+
+  it("a deposit changes the state of that goal only", async () => {
+    await createGoal(db, small);
+    await createGoal(db, small);
+    await deposit(1, "2026-10-05", 1000); // raw: goal 1 was not synced
+    await addDeposit(db, 2, { date: "2026-10-05", amount: 1 }, "2026-10-05");
+    expect(await achievedAt()).toBeNull();
+  });
+
   it("leaves the other goals alone", async () => {
     await createGoal(db, small);
     await createGoal(db, small);

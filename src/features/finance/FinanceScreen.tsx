@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { listCategories, type Category } from "../../db/categories";
+import { loadDailyLimit, type DailyLimitData } from "../../db/dailyLimit";
 import { generateRecurring } from "../../db/recurring";
 import { getSetting } from "../../db/settings";
 import {
@@ -30,6 +31,7 @@ interface Data {
   transactions: Transaction[];
   expenses: MonthExpenses;
   budget: number; // settings.monthly_budget in haléře, 0 = not set
+  limit: DailyLimitData | null | undefined; // null = no budget, undefined = failed
 }
 
 const t = cs.finance;
@@ -65,6 +67,52 @@ function BudgetBar(props: { label: string; spent: number; limit: number }) {
   );
 }
 
+/** FIN-10, CALC-07. Lives here until the Today screen comes in phase 5. */
+function DailyLimitCard(props: {
+  limit: DailyLimitData | null;
+  onOpenSettings: () => void;
+}) {
+  const { limit } = props;
+  return (
+    <section
+      aria-labelledby="daily-limit-heading"
+      className="rounded-md border border-border bg-surface p-4"
+    >
+      <h2 id="daily-limit-heading" className="label">
+        {t.canSpendToday}
+      </h2>
+      {limit ? (
+        <>
+          <p
+            className={`text-4xl font-semibold ${limit.shown < 0 ? "text-danger" : ""}`}
+          >
+            {formatMoney(limit.shown)}
+          </p>
+          <p className="mt-1 text-sm text-text-muted">
+            {t.limitFormula(
+              formatMoney(limit.budget),
+              formatMoney(limit.spentBefore),
+              formatMoney(limit.reserved),
+              limit.daysLeft,
+            )}
+            {" = "}
+            {formatMoney(limit.allowance)}
+            {limit.spentToday > 0 &&
+              ` · ${t.spentTodayNote(formatMoney(limit.spentToday))}`}
+          </p>
+        </>
+      ) : (
+        <div className="mt-1 flex flex-wrap items-center gap-3">
+          <p className="text-text-muted">{t.noBudget}</p>
+          <button type="button" className="btn" onClick={props.onOpenSettings}>
+            {t.setBudget}
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function FinanceScreen(props: Props) {
   const { db, dataVersion, today } = props;
   const [month, setMonth] = useState(() => monthOf(props.today));
@@ -81,12 +129,14 @@ export function FinanceScreen(props: Props) {
         () => true,
         () => false,
       );
-      const [categories, transactions, expenses, budget] = await Promise.all([
-        listCategories(db),
-        listTransactions(db, month, filter),
-        monthExpenses(db, month),
-        getSetting(db, "monthly_budget"),
-      ]);
+      const [categories, transactions, expenses, budget, limit] =
+        await Promise.all([
+          listCategories(db),
+          listTransactions(db, month, filter),
+          monthExpenses(db, month),
+          getSetting(db, "monthly_budget"),
+          generated ? loadDailyLimit(db, today) : undefined,
+        ]);
       if (!current) return;
       setError(generated ? null : cs.recurring.generateError);
       setData({
@@ -94,6 +144,7 @@ export function FinanceScreen(props: Props) {
         transactions,
         expenses,
         budget: Number(budget) || 0,
+        limit,
       });
     }
     load().catch(() => current && setError(cs.loadError));
@@ -120,6 +171,12 @@ export function FinanceScreen(props: Props) {
 
   return (
     <div className="max-w-3xl space-y-8">
+      {data && data.limit !== undefined && (
+        <DailyLimitCard
+          limit={data.limit}
+          onOpenSettings={props.onOpenSettings}
+        />
+      )}
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"

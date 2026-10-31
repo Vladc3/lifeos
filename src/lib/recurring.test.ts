@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { dueRuns, firstRunMonth, paymentDate } from "./recurring";
+import {
+  dueRuns,
+  firstRunMonth,
+  paymentDate,
+  upcomingRecurring,
+} from "./recurring";
 
 const monthly = (day_of_month: number, first_month: string) => ({
   day_of_month,
@@ -89,5 +94,77 @@ describe("dueRuns (CALC-11)", () => {
     expect(dueRuns(monthly(5, "2026-12"), [], "2026-12-10")).toEqual([
       { month: "2026-12", date: "2026-12-05" },
     ]);
+  });
+});
+
+describe("upcomingRecurring (CALC-07 U, R6)", () => {
+  const rent = {
+    id: 1,
+    amount: 900000,
+    kind: "expense" as const,
+    ...monthly(25, "2026-11"),
+  };
+
+  it("sums expenses still to come this month", () => {
+    expect(upcomingRecurring([rent], [], "2026-11-24")).toBe(900000);
+  });
+
+  it("leaves out a payment due today, it is already generated", () => {
+    expect(upcomingRecurring([rent], [], "2026-11-25")).toBe(0);
+  });
+
+  it("clamps the date: day 31 on the 29th of November is still to come", () => {
+    expect(
+      upcomingRecurring([{ ...rent, day_of_month: 31 }], [], "2026-11-29"),
+    ).toBe(900000);
+    expect(
+      upcomingRecurring([{ ...rent, day_of_month: 31 }], [], "2026-11-30"),
+    ).toBe(0);
+  });
+
+  it("leaves out income, archived, a month with a run, and before first_month", () => {
+    expect(
+      upcomingRecurring([{ ...rent, kind: "income" }], [], "2026-11-01"),
+    ).toBe(0);
+    expect(
+      upcomingRecurring(
+        [{ ...rent, archived_at: "2026-11-01" }],
+        [],
+        "2026-11-01",
+      ),
+    ).toBe(0);
+    expect(
+      upcomingRecurring(
+        [rent],
+        [{ recurring_id: 1, month: "2026-11" }],
+        "2026-11-01",
+      ),
+    ).toBe(0);
+    expect(
+      upcomingRecurring(
+        [{ ...rent, first_month: "2026-12" }],
+        [],
+        "2026-11-01",
+      ),
+    ).toBe(0);
+  });
+
+  it("a run of another payment or month does not count", () => {
+    expect(
+      upcomingRecurring(
+        [rent],
+        [
+          { recurring_id: 2, month: "2026-11" },
+          { recurring_id: 1, month: "2026-10" },
+        ],
+        "2026-11-01",
+      ),
+    ).toBe(900000);
+  });
+
+  it("sums several payments", () => {
+    expect(
+      upcomingRecurring([rent, { ...rent, id: 2 }], [], "2026-11-01"),
+    ).toBe(1800000);
   });
 });

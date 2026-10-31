@@ -64,6 +64,17 @@ export const cs = {
     income: "Příjem",
   },
   finance: {
+    canSpendToday: "Dnes můžeš utratit",
+    setBudget: "Nastav rozpočet",
+    noBudget: "Bez měsíčního rozpočtu se denní limit nepočítá.",
+    limitFormula: (
+      budget: string,
+      spent: string,
+      reserved: string,
+      days: number,
+    ) =>
+      `(${budget} − ${spent} utraceno − ${reserved} rezervováno) ÷ ${days} d.`,
+    spentTodayNote: (amount: string) => `Dnes utraceno ${amount}`,
     previousMonth: "Předchozí měsíc",
     nextMonth: "Další měsíc",
     budget: "Rozpočet měsíce",

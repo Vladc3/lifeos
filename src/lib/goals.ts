@@ -25,3 +25,37 @@ export function monthlyContribution(
 export function isOverdue(deadline: string, today: string): boolean {
   return deadline < today;
 }
+
+export interface GoalPlanInput {
+  target_amount: number | null;
+  deadline: string | null;
+  saved: number;
+  paused_at: string | null;
+  achieved_at: string | null;
+}
+
+/** D3: what the goal plans to take this month. Only an active saving goal does. */
+export function goalPlan(goal: GoalPlanInput, today: string): number {
+  if (goal.paused_at || goal.achieved_at) return 0;
+  if (goal.target_amount === null || goal.deadline === null) return 0;
+  return monthlyContribution(
+    goal.target_amount,
+    goal.saved,
+    goal.deadline,
+    today,
+  );
+}
+
+/**
+ * CALC-07 P (D3, R5, R6): a paid deposit stays reserved, a deposit over the plan
+ * lowers the limit. Each goal or account stands on its own.
+ */
+export function reservedThisMonth(
+  items: { plan: number; deposited: number }[],
+  upcoming: number,
+): number {
+  return items.reduce(
+    (sum, item) => sum + Math.max(item.plan, item.deposited),
+    upcoming,
+  );
+}

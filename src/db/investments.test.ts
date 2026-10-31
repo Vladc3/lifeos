@@ -115,6 +115,16 @@ describe("sums of the month (CALC-07)", () => {
   });
 });
 
+describe("sums per account", () => {
+  it("deposits of the month belong to their account", async () => {
+    await createInvestment(db, etf, 0);
+    await createInvestment(db, etf, 0);
+    await add(5);
+    expect((await first()).deposited).toBe(5);
+    expect(must((await listInvestments(db, "2026-10"))[1]).deposited).toBe(0);
+  });
+});
+
 describe("account (FIN-12)", () => {
   it("edits name, icon and monthly deposit, not the value", async () => {
     await createInvestment(db, etf, 4000000);

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { contributionMonths, isOverdue, monthlyContribution } from "./goals";
+import {
+  contributionMonths,
+  goalPlan,
+  isOverdue,
+  monthlyContribution,
+  reservedThisMonth,
+} from "./goals";
 
 describe("contributionMonths (CALC-08: M včetně obou měsíců)", () => {
   it("counts this month and the deadline month", () => {
@@ -59,5 +65,56 @@ describe("isOverdue (CALC-08, R4)", () => {
 
   it("is true the day after", () => {
     expect(isOverdue("2026-10-31", "2026-11-01")).toBe(true);
+  });
+});
+
+describe("goalPlan (D3)", () => {
+  const goal = {
+    target_amount: 300000,
+    deadline: "2026-11-30",
+    saved: 0,
+    paused_at: null,
+    achieved_at: null,
+  };
+
+  it("is the contribution of an active saving goal", () => {
+    expect(goalPlan(goal, "2026-11-01")).toBe(300000);
+  });
+
+  it("is 0 for a paused or achieved goal", () => {
+    expect(goalPlan({ ...goal, paused_at: "2026-11-01" }, "2026-11-01")).toBe(
+      0,
+    );
+    expect(goalPlan({ ...goal, achieved_at: "2026-11-01" }, "2026-11-01")).toBe(
+      0,
+    );
+  });
+
+  it("is 0 without an amount or deadline: limit and no-spend goals", () => {
+    expect(goalPlan({ ...goal, deadline: null }, "2026-11-01")).toBe(0);
+    expect(goalPlan({ ...goal, target_amount: null }, "2026-11-01")).toBe(0);
+  });
+});
+
+describe("reservedThisMonth (CALC-07 P, R5)", () => {
+  it("each item reserves the larger of plan and deposits", () => {
+    expect(
+      reservedThisMonth(
+        [
+          { plan: 1000, deposited: 1500 },
+          { plan: 2000, deposited: 0 },
+          { plan: 0, deposited: 400 },
+        ],
+        0,
+      ),
+    ).toBe(3900);
+  });
+
+  it("adds upcoming payments", () => {
+    expect(reservedThisMonth([{ plan: 100, deposited: 0 }], 50)).toBe(150);
+  });
+
+  it("is 0 for nothing", () => {
+    expect(reservedThisMonth([], 0)).toBe(0);
   });
 });

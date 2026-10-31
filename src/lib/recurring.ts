@@ -1,3 +1,4 @@
+import type { CategoryKind } from "../db/categories";
 import { monthOf, shiftMonth } from "./dates";
 
 export interface RecurringSchedule {
@@ -43,4 +44,27 @@ export function dueRuns(
       result.push({ month, date });
   }
   return result;
+}
+
+/** CALC-07 U (R6): expenses still to come this month, without a run yet. */
+export function upcomingRecurring(
+  payments: (RecurringSchedule & {
+    id: number;
+    amount: number;
+    kind: CategoryKind;
+  })[],
+  runs: { recurring_id: number; month: string }[],
+  today: string,
+): number {
+  const month = monthOf(today);
+  return payments
+    .filter(
+      (p) =>
+        p.kind === "expense" &&
+        !p.archived_at &&
+        p.first_month <= month &&
+        paymentDate(month, p.day_of_month) > today &&
+        !runs.some((r) => r.recurring_id === p.id && r.month === month),
+    )
+    .reduce((sum, p) => sum + p.amount, 0);
 }

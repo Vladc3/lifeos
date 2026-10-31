@@ -12,9 +12,14 @@ export function useModalDialog(onClose: () => void) {
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
+    // Unmounting removes the dialog first, so the browser cannot return the focus.
+    const opener = document.activeElement;
     dialog.showModal();
     dialog.querySelector<HTMLElement>("[data-autofocus]")?.focus();
-    return () => dialog.close();
+    return () => {
+      dialog.close();
+      if (opener instanceof HTMLElement) opener.focus();
+    };
   }, []);
 
   function onCancel(event: SyntheticEvent) {

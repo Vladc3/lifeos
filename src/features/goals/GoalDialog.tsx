@@ -17,6 +17,7 @@ export function GoalDialog(props: {
   goal: Goal | null;
   onClose: () => void;
   onSaved: () => void;
+  onChanged: () => void; // a save can land partly, the list must show it
 }) {
   const { db, today, goal } = props;
   const { ref, onCancel } = useModalDialog(props.onClose);
@@ -60,6 +61,7 @@ export function GoalDialog(props: {
       props.onSaved();
     } catch {
       setError(cs.saveError);
+      props.onChanged();
     }
   }
 

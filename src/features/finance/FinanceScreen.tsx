@@ -28,6 +28,7 @@ interface Props {
 }
 
 interface Data {
+  month: string; // what was loaded, so another month's numbers are never shown
   categories: Category[];
   transactions: Transaction[];
   monthRows: Transaction[]; // FIN-09 ignores the category filter
@@ -88,7 +89,8 @@ export function FinanceScreen(props: Props) {
   const { db, dataVersion, today } = props;
   const [month, setMonth] = useState(() => monthOf(props.today));
   const [filter, setFilter] = useState<number | null>(null);
-  const [data, setData] = useState<Data | null>(null);
+  const [loaded, setLoaded] = useState<Data | null>(null);
+  const data = loaded?.month === month ? loaded : null;
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<number | null>(null);
 
@@ -98,7 +100,10 @@ export function FinanceScreen(props: Props) {
       // CALC-11 first, so the reads see the new payments. If it fails, the rest still shows.
       const generated = await generateRecurring(db, today).then(
         () => true,
-        () => false,
+        (cause: unknown) => {
+          console.error(cause); // the message below cannot say why
+          return false;
+        },
       );
       const [categories, transactions, monthRows, expenses, budget, limit] =
         await Promise.all([
@@ -111,7 +116,8 @@ export function FinanceScreen(props: Props) {
         ]);
       if (!current) return;
       setError(generated ? null : cs.recurring.generateError);
-      setData({
+      setLoaded({
+        month,
         categories,
         transactions,
         monthRows,

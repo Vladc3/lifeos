@@ -83,6 +83,8 @@ function goalView(goal: Goal, data: Data, today: string) {
   const month = monthOf(today);
   const lastMonth = shiftMonth(month, -1);
   const target = goal.target_amount ?? 0;
+  // ponytail: created_at is UTC, a goal from just after midnight on the 1st can
+  // show one extra last-month line. A label only, no money depends on it.
   const started = monthOf(goal.created_at) <= lastMonth;
 
   if (goal.type === "limit") {
@@ -154,7 +156,10 @@ export function GoalsScreen(props: {
       // E2: same order as Finance, so the limit sees new payments.
       const generated = await generateRecurring(db, today).then(
         () => true,
-        () => false,
+        (cause: unknown) => {
+          console.error(cause); // the message below cannot say why
+          return false;
+        },
       );
       const month = monthOf(today);
       const [goals, spending, last, investments, limit] = await Promise.all([
@@ -180,16 +185,33 @@ export function GoalsScreen(props: {
     setError(null);
     try {
       await action();
-      reload();
     } catch {
       setError(cs.saveError);
+    } finally {
+      reload();
     }
   }
 
   const goals = data?.goals ?? [];
-  const order = goals.map((g) => g.id);
-  const move = (id: number, to: number) =>
-    void run(() => reorderGoals(db, moveInOrder(order, id, to)));
+
+  // The new order shows at once: a second quick click must start from it.
+  function move(id: number, to: number) {
+    const next = moveInOrder(
+      goals.map((g) => g.id),
+      id,
+      to,
+    );
+    setData(
+      (d) =>
+        d && {
+          ...d,
+          goals: [...d.goals].sort(
+            (a, b) => next.indexOf(a.id) - next.indexOf(b.id),
+          ),
+        },
+    );
+    void run(() => reorderGoals(db, next));
+  }
 
   // FIN-08: nothing to compare with until a budget is set.
   const dontFit = data?.limit
@@ -231,7 +253,7 @@ export function GoalsScreen(props: {
             type="button"
             className="btn px-2 py-0"
             aria-label={t.moveUp(goal.name)}
-            disabled={index === 0}
+            aria-disabled={index === 0}
             onClick={() => move(goal.id, index - 1)}
           >
             ↑
@@ -240,7 +262,7 @@ export function GoalsScreen(props: {
             type="button"
             className="btn px-2 py-0"
             aria-label={t.moveDown(goal.name)}
-            disabled={index === goals.length - 1}
+            aria-disabled={index === goals.length - 1}
             onClick={() => move(goal.id, index + 1)}
           >
             ↓
@@ -344,14 +366,9 @@ export function GoalsScreen(props: {
           title={depositing.name}
           today={today}
           load={() => listDeposits(db, depositing.id)}
-          onAdd={async (deposit) => {
-            await addDeposit(db, depositing.id, deposit, today);
-            reload();
-          }}
-          onDelete={async (id) => {
-            await deleteDeposit(db, id, depositing.id, today);
-            reload();
-          }}
+          onAdd={(deposit) => addDeposit(db, depositing.id, deposit, today)}
+          onDelete={(id) => deleteDeposit(db, id, depositing.id, today)}
+          onChanged={reload}
           onClose={() => setDepositing(null)}
         />
       )}
@@ -366,6 +383,7 @@ export function GoalsScreen(props: {
             setEditing(null);
             reload();
           }}
+          onChanged={reload}
         />
       )}
     </div>

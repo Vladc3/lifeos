@@ -201,3 +201,4 @@ Demo (dnes = den spuštění):
 | T6 | Mutace: 19 z 19 chycených po doplnění testů výdaje dnes a budoucího měsíce |
 | T7 | Recharts 3.10.1 přesně. Skill dataviz nešel prověřit, soubor nebyl na disku, proto nepoužit a barvy jsou z tématu. Mutace výpočtů: 7 z 7 chycených. Grafy ověří K10 ručně |
 | T8 | Verze a dokumenty hotové. Vykreslení obrazovek T2–T7 zatím neviděl nikdo, K1–K11 čekají na vlastníka |
+| T9 | Revize (react-reviewer, silent-failure-hunter, code-reviewer): v penězích bez chyby. Opraveno: seznam vkladů se obnoví i po chybě, aby nevznikl dvojitý vklad; částka se maže až po uložení; Finance neukáže data jiného měsíce; ↑ ↓ drží fokus a dvě rychlá kliknutí; fokus se po zavření dialogu vrací; příčina selhání generování jde do konzole. Ponecháno: záložky Nastavení bez šipek (Tab a Enter fungují), FIN-11 počítá budoucí výdaje stejně jako FIN-04, popisek minulého měsíce může o půlnoci 1. dne přidat řádek (UTC) |

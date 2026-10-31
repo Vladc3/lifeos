@@ -15,6 +15,7 @@ export function DepositDialog(props: {
   load: () => Promise<Deposit[]>;
   onAdd: (deposit: DepositInput) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
+  onChanged: () => void;
   onClose: () => void;
 }) {
   const { load } = props;
@@ -31,13 +32,19 @@ export function DepositDialog(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [version]);
 
+  // A write can land and its follow-up fail, so the list always reloads: a
+  // deposit that is there must not look unsaved and get entered twice.
   async function run(action: () => Promise<void>) {
     try {
       await action();
       setError(null);
-      setVersion((v) => v + 1);
+      return true;
     } catch {
       setError(cs.saveError);
+      return false;
+    } finally {
+      setVersion((v) => v + 1);
+      props.onChanged();
     }
   }
 
@@ -48,8 +55,7 @@ export function DepositDialog(props: {
       setError(result.error === "amount" ? t.errors.amount : t.errors.date);
       return;
     }
-    setAmount("");
-    await run(() => props.onAdd(result.value));
+    if (await run(() => props.onAdd(result.value))) setAmount("");
   }
 
   return (

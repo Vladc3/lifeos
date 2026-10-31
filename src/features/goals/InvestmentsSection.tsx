@@ -40,7 +40,11 @@ export function InvestmentsSection(props: {
   useEffect(() => {
     let current = true;
     listInvestments(db, monthOf(today)).then(
-      (list) => current && setInvestments(list),
+      (list) => {
+        if (!current) return;
+        setError(null);
+        setInvestments(list);
+      },
       () => current && setError(cs.loadError),
     );
     return () => {
@@ -137,14 +141,9 @@ export function InvestmentsSection(props: {
           title={depositing.name}
           today={today}
           load={() => listInvestmentDeposits(db, depositing.id)}
-          onAdd={async (deposit) => {
-            await addInvestmentDeposit(db, depositing.id, deposit);
-            reload();
-          }}
-          onDelete={async (id) => {
-            await deleteInvestmentDeposit(db, id);
-            reload();
-          }}
+          onAdd={(deposit) => addInvestmentDeposit(db, depositing.id, deposit)}
+          onDelete={(id) => deleteInvestmentDeposit(db, id)}
+          onChanged={reload}
           onClose={() => setDepositing(null)}
         />
       )}
@@ -158,6 +157,7 @@ export function InvestmentsSection(props: {
             setEditing(null);
             reload();
           }}
+          onChanged={reload}
         />
       )}
     </section>
@@ -169,6 +169,7 @@ function InvestmentDialog(props: {
   investment: Investment | null;
   onClose: () => void;
   onSaved: () => void;
+  onChanged: () => void; // a save can land partly, the list must show it
 }) {
   const { db, investment } = props;
   const { ref, onCancel } = useModalDialog(props.onClose);
@@ -204,6 +205,7 @@ function InvestmentDialog(props: {
       props.onSaved();
     } catch {
       setError(cs.saveError);
+      props.onChanged();
     }
   }
 

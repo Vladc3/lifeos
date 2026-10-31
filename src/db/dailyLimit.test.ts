@@ -179,6 +179,28 @@ describe("P for saving goals (D3)", () => {
     expect((await load("2026-11-02")).reserved).toBe(kc(300));
   });
 
+  it("an archived goal or account does not bring back older deposits", async () => {
+    await createGoal(db, { ...trip, target_amount: kc(1000) });
+    await addDeposit(
+      db,
+      1,
+      { date: "2026-10-01", amount: kc(300) },
+      "2026-10-01",
+    );
+    await archiveGoal(db, 1, "2026-11-02");
+    await createInvestment(
+      db,
+      { name: "ETF", icon: "📈", monthly_deposit: 0 },
+      0,
+    );
+    await addInvestmentDeposit(db, 1, {
+      date: "2026-10-01",
+      amount: kc(200),
+    });
+    await archiveInvestment(db, 1, "2026-11-02");
+    expect((await load("2026-11-02")).reserved).toBe(0);
+  });
+
   it("saved before this month lowers the plan (CALC-08)", async () => {
     await createGoal(db, trip);
     await addDeposit(

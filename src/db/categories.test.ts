@@ -9,6 +9,7 @@ import {
   updateCategory,
   type CategoryInput,
 } from "./categories";
+import { archiveGoal, createGoal, type GoalInput } from "./goals";
 import { archiveRecurring, createRecurring } from "./recurring";
 import { createTransaction } from "./transactions";
 import { createTestDb, must } from "./testDb";
@@ -185,5 +186,34 @@ describe("categories used by recurring payments (plan F4, E8)", () => {
         monthly_budget: 0,
       }),
     ).toBe("ok");
+  });
+});
+
+describe("categories used by goals (plan F4, E8)", () => {
+  const limitGoal = (category_id: number): GoalInput => ({
+    type: "limit",
+    name: "Méně jídla",
+    icon: "🍎",
+    target_amount: 100000,
+    target_days: null,
+    category_id,
+    deadline: null,
+  });
+
+  it("cannot delete a category of a limit goal, even an archived one", async () => {
+    const { id } = await byName("Jídlo");
+    await createGoal(db, limitGoal(id));
+    expect(await deleteCategory(db, id)).toBe("in_use");
+    await archiveGoal(db, 1, "2026-11-01");
+    expect(await deleteCategory(db, id)).toBe("in_use");
+  });
+
+  it("locks the kind only while an active goal uses the category", async () => {
+    const category = await byName("Jídlo");
+    await createGoal(db, limitGoal(category.id));
+    const income = { ...category, kind: "income" as const, monthly_budget: 0 };
+    expect(await updateCategory(db, category.id, income)).toBe("kind_locked");
+    await archiveGoal(db, 1, "2026-11-01");
+    expect(await updateCategory(db, category.id, income)).toBe("ok");
   });
 });

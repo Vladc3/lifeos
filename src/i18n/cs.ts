@@ -51,9 +51,9 @@ export const cs = {
       budget: "Limit musí být kladná částka, nejvýš 2 desetinná místa.",
       nameTaken: "Aktivní kategorie s tímto názvem už existuje.",
       inUse:
-        "Kategorii používají transakce nebo opakované platby, smazat ji nejde. Můžeš ji archivovat.",
+        "Kategorii používají transakce, opakované platby nebo cíle, smazat ji nejde. Můžeš ji archivovat.",
       kindLocked:
-        "Kategorii používá aktivní opakovaná platba, typ změnit nejde. Platbu nejdřív archivuj.",
+        "Kategorii používá aktivní opakovaná platba nebo cíl, typ změnit nejde. Nejdřív je archivuj.",
     },
     kindChange: (count: number) =>
       `Změní se i ${count} ${transactionsWord(count)} této kategorie. Pokračovat?`,
@@ -121,6 +121,31 @@ export const cs = {
       amount: "Zadej částku větší než 0, nejvýš 2 desetinná místa.",
       category: "Vyber kategorii.",
       day: "Zadej den 1 až 31.",
+    },
+  },
+  goals: {
+    add: "Přidat cíl",
+    newGoal: "Nový cíl",
+    editGoal: "Upravit cíl",
+    empty:
+      "Zatím tu nemáš žádný cíl. Přidej si třeba dovolenou, na kterou chceš našetřit.",
+    name: "Název",
+    icon: "Ikona",
+    amount: "Cílová částka (Kč)",
+    deadline: "Termín",
+    edit: "Upravit",
+    pause: "Pozastavit",
+    resume: "Pokračovat",
+    archive: "Archivovat",
+    paused: "Pozastaveno",
+    contribution: (amount: string) => `${amount} měsíčně`,
+    until: (date: string) => `do ${date}`,
+    progress: (percent: number) => `Splněno ${percent} %`,
+    errors: {
+      name: "Zadej název, nejvýš 40 znaků.",
+      icon: "Zadej ikonu, třeba emoji.",
+      amount: "Zadej částku větší než 0, nejvýš 2 desetinná místa.",
+      deadline: "Zadej termín v budoucnu.",
     },
   },
   habits: {

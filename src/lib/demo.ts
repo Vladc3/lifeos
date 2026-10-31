@@ -109,6 +109,12 @@ const RULES: Rule[] = [
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
+const shiftedMonth = (today: string, delta: number) => {
+  const [year, month] = today.split("-").map(Number);
+  const index = year * 12 + (month - 1) + delta;
+  return `${Math.floor(index / 12)}-${pad((index % 12) + 1)}`;
+};
+
 /** Transactions for the current month up to today and the 2 months before. */
 export function demoTransactions(
   today: string,
@@ -156,15 +162,38 @@ export function demoRecurring(
 ): DemoRecurring[] {
   const category = categories.find((c) => c.name === "Předplatné");
   if (!category) return [];
-  const [year, month] = today.split("-").map(Number);
-  const index = year * 12 + (month - 1) - 2;
   return [
     {
       name: "Předplatné",
       amount: 25900,
       category_id: category.id,
       day_of_month: 5,
-      first_month: `${Math.floor(index / 12)}-${pad((index % 12) + 1)}`,
+      first_month: shiftedMonth(today, -2),
+    },
+  ];
+}
+
+export interface DemoGoal {
+  type: "saving";
+  name: string;
+  icon: string;
+  target_amount: number;
+  deadline: string;
+  priority: number;
+  deposits: { date: string; amount: number }[];
+}
+
+/** Dates are the 1st of a month: "today + 6 months" would overflow on the 31st. */
+export function demoGoals(today: string): DemoGoal[] {
+  return [
+    {
+      type: "saving",
+      name: "Dovolená",
+      icon: "🏖️",
+      target_amount: 3000000,
+      deadline: `${shiftedMonth(today, 6)}-01`,
+      priority: 1,
+      deposits: [{ date: `${shiftedMonth(today, -1)}-01`, amount: 500000 }],
     },
   ];
 }

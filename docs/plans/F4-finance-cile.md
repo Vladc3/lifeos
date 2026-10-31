@@ -194,3 +194,4 @@ Demo (dnes = den spuštění):
 | --- | --- |
 | T1 | Dev-team před kódem přidal: souběžné generování, kategorii s archivovanou platbou, přesun data vygenerované platby, upgrade z verze 4, zobrazení obsahu Finance i při selhání generování. Mutace: 15 z 15 chycených testy nebo během skriptu, `OR IGNORE` jen ve spojení s odebráním `NOT EXISTS` (sám je neškodný) |
 | T1 | V app ověřeno: migrace 5 přes sqlx, 3 platby a 3 běhy po demu i po restartu, `focus` načte změnu z DB, záložka Nastavení vykreslená. Formulář přidání ověří K1 ručně, automatizace kláves nebyla spolehlivá |
+| T2 | Mutace 14 z 14 chycených testy. V app ověřena migrace 6 a demo Dovolená. Obrazovka Cíle se při automatické kontrole nevykreslila (okno nešlo zaostřit), první vykreslení ověří K4 ručně |

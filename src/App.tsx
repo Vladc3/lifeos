@@ -9,6 +9,7 @@ import {
   TransactionDialog,
   type TransactionDialogState,
 } from "./features/finance/TransactionDialog";
+import { GoalsScreen } from "./features/goals/GoalsScreen";
 import { HabitDialog } from "./features/habits/HabitDialog";
 import { HabitsScreen } from "./features/habits/HabitsScreen";
 import { SettingsScreen } from "./features/settings/SettingsScreen";
@@ -147,6 +148,8 @@ export default function App() {
               onEdit={(habit) => setHabitDialog(habit)}
             />
           )
+        ) : active === "goals" ? (
+          db && <GoalsScreen db={db} today={today} dataVersion={dataVersion} />
         ) : active === "settings" ? (
           <SettingsScreen db={db} today={today} />
         ) : (

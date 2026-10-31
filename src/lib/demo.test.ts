@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEMO_LIMITS,
+  demoGoals,
   demoHabits,
   demoRecurring,
   demoTransactions,
@@ -207,5 +208,27 @@ describe("demoRecurring (PUB-04, plan F4, E13)", () => {
     expect(
       demoTransactions("2026-10-26", ids).filter((t) => t.category_id === 8),
     ).toEqual([]);
+  });
+});
+
+describe("demoGoals (PUB-04, plan F4, kontrolní seznam)", () => {
+  it("has Dovolená with a deadline that never overflows on the 31st", () => {
+    expect(demoGoals("2026-10-31")).toMatchObject([
+      {
+        type: "saving",
+        name: "Dovolená",
+        target_amount: 3000000,
+        deadline: "2027-04-01",
+        priority: 1,
+        deposits: [{ date: "2026-09-01", amount: 500000 }],
+      },
+    ]);
+  });
+
+  it("crosses the year", () => {
+    expect(demoGoals("2027-01-15")[0]).toMatchObject({
+      deadline: "2027-07-01",
+      deposits: [{ date: "2026-12-01" }],
+    });
   });
 });

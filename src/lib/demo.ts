@@ -207,6 +207,19 @@ export function demoGoals(today: string): DemoGoal[] {
   ];
 }
 
+export interface DemoInvestment {
+  name: string;
+  icon: string;
+  base_value: number;
+  monthly_deposit: number;
+}
+
+export function demoInvestments(): DemoInvestment[] {
+  return [
+    { name: "ETF", icon: "📈", base_value: 4000000, monthly_deposit: 200000 },
+  ];
+}
+
 export interface DemoHabit {
   habit: HabitInput & {
     start_date: string;

@@ -8,6 +8,7 @@ import {
   DEMO_LIMITS,
   demoGoals,
   demoHabits,
+  demoInvestments,
   demoRecurring,
   demoTransactions,
   devDbPath,
@@ -53,6 +54,7 @@ const categories = db
 const transactions = demoTransactions(today, categories);
 const recurring = demoRecurring(today, categories);
 const goals = demoGoals(today);
+const investments = demoInvestments();
 const habits = demoHabits(today);
 
 // One connection, so a plain transaction is safe here (unlike plugin-sql's pool).
@@ -64,6 +66,8 @@ try {
   db.exec("DELETE FROM recurring");
   db.exec("DELETE FROM goal_deposits");
   db.exec("DELETE FROM goals");
+  db.exec("DELETE FROM investment_deposits");
+  db.exec("DELETE FROM investments");
   db.exec("UPDATE categories SET monthly_budget = 0");
   const limit = db.prepare(
     "UPDATE categories SET monthly_budget = ? WHERE name = ? AND kind = 'expense'",
@@ -107,6 +111,11 @@ try {
     for (const d of g.deposits)
       addDeposit.run(lastInsertRowid, d.date, d.amount);
   }
+  const addInvestment = db.prepare(
+    "INSERT INTO investments (name, icon, base_value, monthly_deposit) VALUES (?, ?, ?, ?)",
+  );
+  for (const i of investments)
+    addInvestment.run(i.name, i.icon, i.base_value, i.monthly_deposit);
   // PUB-04 habits (plan F3, E10): children first because of the foreign keys.
   db.exec("DELETE FROM habit_logs");
   db.exec("DELETE FROM habit_pauses");

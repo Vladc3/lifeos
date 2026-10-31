@@ -17,6 +17,7 @@ import { isOverdue, monthlyContribution } from "../../lib/goals";
 import { formatMoney } from "../../lib/money";
 import { DepositDialog } from "./DepositDialog";
 import { GoalDialog } from "./GoalDialog";
+import { InvestmentsSection } from "./InvestmentsSection";
 
 const t = cs.goals;
 
@@ -197,6 +198,7 @@ export function GoalsScreen(props: {
           {goals.map(card)}
         </ul>
       )}
+      <InvestmentsSection db={db} today={today} dataVersion={dataVersion} />
       {depositing && (
         <DepositDialog
           key={depositing.id}

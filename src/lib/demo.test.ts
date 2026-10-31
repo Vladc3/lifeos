@@ -3,6 +3,7 @@ import {
   DEMO_LIMITS,
   demoGoals,
   demoHabits,
+  demoInvestments,
   demoRecurring,
   demoTransactions,
   devDbPath,
@@ -238,5 +239,18 @@ describe("demoGoals (PUB-04, plan F4, kontrolní seznam)", () => {
       deadline: "2027-07-01",
       deposits: [{ date: "2026-12-01" }],
     });
+  });
+});
+
+describe("demoInvestments (PUB-04, plan F4, kontrolní seznam)", () => {
+  it("has ETF with its value and monthly deposit", () => {
+    expect(demoInvestments()).toEqual([
+      {
+        name: "ETF",
+        icon: "📈",
+        base_value: 4000000,
+        monthly_deposit: 200000,
+      },
+    ]);
   });
 });

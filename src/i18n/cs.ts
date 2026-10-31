@@ -158,6 +158,29 @@ export const cs = {
       date: "Zadej dnešní nebo minulé datum.",
     },
   },
+  investments: {
+    title: "Investice",
+    add: "Přidat investici",
+    newInvestment: "Nová investice",
+    editInvestment: "Upravit investici",
+    empty: "Zatím tu nemáš žádnou investici.",
+    name: "Název",
+    icon: "Ikona",
+    value: "Aktuální hodnota (Kč)",
+    valueHint:
+      "Uložením změněné hodnoty ji přepíšeš, dosavadní vklady v ní jsou.",
+    monthlyDeposit: "Měsíční vklad (Kč)",
+    monthlyDepositHint: "O tuto částku se sníží denní limit.",
+    perMonth: (amount: string) => `${amount} měsíčně`,
+    remaining: (amount: string) => `Tento měsíc zbývá vložit ${amount}`,
+    done: "Vklad tohoto měsíce je hotový",
+    errors: {
+      name: "Zadej název, nejvýš 40 znaků.",
+      icon: "Zadej ikonu, třeba emoji.",
+      value: "Zadej částku 0 nebo víc, nejvýš 2 desetinná místa.",
+      monthlyDeposit: "Zadej částku 0 nebo víc, nejvýš 2 desetinná místa.",
+    },
+  },
   habits: {
     add: "Přidat návyk (Ctrl+Shift+N)",
     empty:

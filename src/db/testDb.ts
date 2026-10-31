@@ -19,15 +19,31 @@ function toNamed(bindValues: unknown[] = []): Record<string, SQLInputValue> {
   );
 }
 
-/** In-memory SQLite with every migration applied in order (plan F1, D1). */
-export function createTestDb(): Db {
+export interface TestDb extends Db {
+  /** Applies the migrations after the current version, up to `upTo`. */
+  migrate(upTo?: number): void;
+}
+
+/**
+ * In-memory SQLite with migrations applied in order (plan F1, D1). Pass `upTo`
+ * to stop at an older version and test an upgrade of a filled DB (plan F4).
+ */
+export function createTestDb(upTo = Infinity): TestDb {
   const sqlite = new DatabaseSync(":memory:");
-  for (const file of readdirSync(migrationsDir)
-    .filter((f) => f.endsWith(".sql"))
-    .sort()) {
-    sqlite.exec(readFileSync(join(migrationsDir, file), "utf8"));
-  }
+  let version = 0;
+  const migrate = (to = Infinity) => {
+    for (const file of readdirSync(migrationsDir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort()) {
+      const number = Number(file.split("_")[0]);
+      if (number <= version || number > to) continue;
+      sqlite.exec(readFileSync(join(migrationsDir, file), "utf8"));
+      version = number;
+    }
+  };
+  migrate(upTo);
   return {
+    migrate,
     async execute(query, bindValues) {
       const result = sqlite.prepare(query).run(toNamed(bindValues));
       return {

@@ -28,6 +28,24 @@ pub fn migrations() -> Vec<Migration> {
             sql: include_str!("../migrations/0004_habits.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 5,
+            description: "recurring",
+            sql: include_str!("../migrations/0005_recurring.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 6,
+            description: "goals",
+            sql: include_str!("../migrations/0006_goals.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 7,
+            description: "investments",
+            sql: include_str!("../migrations/0007_investments.sql"),
+            kind: MigrationKind::Up,
+        },
     ]
 }
 

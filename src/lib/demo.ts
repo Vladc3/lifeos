@@ -81,12 +81,6 @@ const RULES: Rule[] = [
     on: (day) => day === 12 || day === 24,
     amount: (_day, month) => 34900 + month * 5000,
   },
-  {
-    category: "Předplatné",
-    on: (day) => day === 3,
-    amount: () => 25900,
-    note: "streaming",
-  },
   { category: "Sport a gym", on: (day) => day === 2, amount: () => 89000 },
   {
     category: "Oblečení",
@@ -114,6 +108,12 @@ const RULES: Rule[] = [
 ];
 
 const pad = (n: number) => String(n).padStart(2, "0");
+
+const shiftedMonth = (today: string, delta: number) => {
+  const [year, month] = today.split("-").map(Number);
+  const index = year * 12 + (month - 1) + delta;
+  return `${Math.floor(index / 12)}-${pad((index % 12) + 1)}`;
+};
 
 /** Transactions for the current month up to today and the 2 months before. */
 export function demoTransactions(
@@ -145,6 +145,114 @@ export function demoTransactions(
     }
   }
   return result;
+}
+
+export interface DemoRecurring {
+  name: string;
+  amount: number;
+  category_id: number;
+  day_of_month: number;
+  first_month: string;
+}
+
+/** Plan F4, E13: day 5 has no other demo expense. The app generates the transactions. */
+export function demoRecurring(
+  today: string,
+  categories: DemoCategory[],
+): DemoRecurring[] {
+  const category = categories.find((c) => c.name === "Předplatné");
+  if (!category) return [];
+  return [
+    {
+      name: "Předplatné",
+      amount: 25900,
+      category_id: category.id,
+      day_of_month: 5,
+      first_month: shiftedMonth(today, -2),
+    },
+  ];
+}
+
+export interface DemoGoal {
+  type: "saving" | "limit" | "no_spend";
+  name: string;
+  icon: string;
+  target_amount: number | null;
+  target_days: number | null;
+  category_id: number | null;
+  deadline: string | null;
+  priority: number;
+  deposits: { date: string; amount: number }[];
+}
+
+/** Dates are the 1st of a month: "today + 6 months" would overflow on the 31st. */
+export function demoGoals(
+  today: string,
+  categories: DemoCategory[],
+): DemoGoal[] {
+  const fun = categories.find((c) => c.name === "Zábava");
+  const none = { target_days: null, category_id: null };
+  return [
+    {
+      ...none,
+      type: "saving",
+      name: "Dovolená",
+      icon: "🏖️",
+      target_amount: 3000000,
+      deadline: `${shiftedMonth(today, 6)}-01`,
+      priority: 1,
+      deposits: [{ date: `${shiftedMonth(today, -1)}-01`, amount: 500000 }],
+    },
+    {
+      ...none,
+      type: "saving",
+      name: "Kurz",
+      icon: "🎓",
+      target_amount: 200000,
+      deadline: `${shiftedMonth(today, -1)}-01`,
+      priority: 2,
+      deposits: [{ date: `${shiftedMonth(today, -1)}-01`, amount: 150000 }],
+    },
+    ...(fun
+      ? [
+          {
+            ...none,
+            type: "limit" as const,
+            name: "Zábava",
+            icon: "🎮",
+            target_amount: 150000,
+            category_id: fun.id,
+            deadline: null,
+            priority: 3,
+            deposits: [],
+          },
+        ]
+      : []),
+    {
+      ...none,
+      type: "no_spend",
+      name: "Bez utrácení",
+      icon: "🌿",
+      target_amount: null,
+      target_days: 10,
+      deadline: null,
+      priority: 4,
+      deposits: [],
+    },
+  ];
+}
+
+export interface DemoInvestment {
+  name: string;
+  icon: string;
+  base_value: number;
+  monthly_deposit: number;
+}
+
+export function demoInvestments(): DemoInvestment[] {
+  return [
+    { name: "ETF", icon: "📈", base_value: 4000000, monthly_deposit: 200000 },
+  ];
 }
 
 export interface DemoHabit {

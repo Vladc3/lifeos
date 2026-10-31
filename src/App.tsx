@@ -9,6 +9,7 @@ import {
   TransactionDialog,
   type TransactionDialogState,
 } from "./features/finance/TransactionDialog";
+import { GoalsScreen } from "./features/goals/GoalsScreen";
 import { HabitDialog } from "./features/habits/HabitDialog";
 import { HabitsScreen } from "./features/habits/HabitsScreen";
 import { SettingsScreen } from "./features/settings/SettingsScreen";
@@ -83,6 +84,14 @@ export default function App() {
       );
   }, []);
 
+  // The app lives in the tray for days: coming back reloads the data and
+  // generates the payments that came due meanwhile (plan F4, E2).
+  useEffect(() => {
+    const refresh = () => setDataVersion((v) => v + 1);
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, []);
+
   const changed = () => setDataVersion((v) => v + 1);
 
   return (
@@ -139,6 +148,8 @@ export default function App() {
               onEdit={(habit) => setHabitDialog(habit)}
             />
           )
+        ) : active === "goals" ? (
+          db && <GoalsScreen db={db} today={today} dataVersion={dataVersion} />
         ) : active === "settings" ? (
           <SettingsScreen db={db} today={today} />
         ) : (

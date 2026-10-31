@@ -168,6 +168,20 @@ describe("noSpendDays (CALC-10)", () => {
     expect(noSpendDays(["2026-11-05"], "2026-11", "2026-12-15")).toBe(29);
   });
 
+  it("an expense today or later does not take away a past day", () => {
+    expect(
+      noSpendDays(
+        ["2026-11-02", "2026-11-04", "2026-11-09"],
+        "2026-11",
+        "2026-11-04",
+      ),
+    ).toBe(2);
+  });
+
+  it("a month that has not started has no days", () => {
+    expect(noSpendDays([], "2026-12", "2026-11-15")).toBe(0);
+  });
+
   it("the same day twice counts once", () => {
     expect(
       noSpendDays(["2026-11-02", "2026-11-02"], "2026-11", "2026-11-04"),

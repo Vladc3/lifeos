@@ -53,7 +53,7 @@ const categories = db
   .all() as { id: number; name: string; kind: "expense" | "income" }[];
 const transactions = demoTransactions(today, categories);
 const recurring = demoRecurring(today, categories);
-const goals = demoGoals(today);
+const goals = demoGoals(today, categories);
 const investments = demoInvestments();
 const habits = demoHabits(today);
 
@@ -94,7 +94,7 @@ try {
       r.first_month,
     );
   const addGoal = db.prepare(
-    "INSERT INTO goals (type, name, icon, target_amount, deadline, priority) VALUES (?, ?, ?, ?, ?, ?)",
+    "INSERT INTO goals (type, name, icon, target_amount, target_days, category_id, deadline, priority) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const addDeposit = db.prepare(
     "INSERT INTO goal_deposits (goal_id, date, amount) VALUES (?, ?, ?)",
@@ -105,6 +105,8 @@ try {
       g.name,
       g.icon,
       g.target_amount,
+      g.target_days,
+      g.category_id,
       g.deadline,
       g.priority,
     );

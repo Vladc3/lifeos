@@ -174,19 +174,27 @@ export function demoRecurring(
 }
 
 export interface DemoGoal {
-  type: "saving";
+  type: "saving" | "limit" | "no_spend";
   name: string;
   icon: string;
-  target_amount: number;
-  deadline: string;
+  target_amount: number | null;
+  target_days: number | null;
+  category_id: number | null;
+  deadline: string | null;
   priority: number;
   deposits: { date: string; amount: number }[];
 }
 
 /** Dates are the 1st of a month: "today + 6 months" would overflow on the 31st. */
-export function demoGoals(today: string): DemoGoal[] {
+export function demoGoals(
+  today: string,
+  categories: DemoCategory[],
+): DemoGoal[] {
+  const fun = categories.find((c) => c.name === "Zábava");
+  const none = { target_days: null, category_id: null };
   return [
     {
+      ...none,
       type: "saving",
       name: "Dovolená",
       icon: "🏖️",
@@ -196,6 +204,7 @@ export function demoGoals(today: string): DemoGoal[] {
       deposits: [{ date: `${shiftedMonth(today, -1)}-01`, amount: 500000 }],
     },
     {
+      ...none,
       type: "saving",
       name: "Kurz",
       icon: "🎓",
@@ -203,6 +212,32 @@ export function demoGoals(today: string): DemoGoal[] {
       deadline: `${shiftedMonth(today, -1)}-01`,
       priority: 2,
       deposits: [{ date: `${shiftedMonth(today, -1)}-01`, amount: 150000 }],
+    },
+    ...(fun
+      ? [
+          {
+            ...none,
+            type: "limit" as const,
+            name: "Zábava",
+            icon: "🎮",
+            target_amount: 150000,
+            category_id: fun.id,
+            deadline: null,
+            priority: 3,
+            deposits: [],
+          },
+        ]
+      : []),
+    {
+      ...none,
+      type: "no_spend",
+      name: "Bez utrácení",
+      icon: "🌿",
+      target_amount: null,
+      target_days: 10,
+      deadline: null,
+      priority: 4,
+      deposits: [],
     },
   ];
 }

@@ -1,4 +1,5 @@
 import { monthOf } from "./dates";
+import { paymentDate } from "./recurring";
 
 const monthIndex = (date: string) => {
   const [year, month] = monthOf(date).split("-").map(Number);
@@ -58,4 +59,62 @@ export function reservedThisMonth(
     (sum, item) => sum + Math.max(item.plan, item.deposited),
     upcoming,
   );
+}
+
+/** CALC-09: spending of the month against the limit, in percent, can exceed 100. */
+export function limitProgress(spent: number, limit: number): number {
+  return Math.round((spent / limit) * 100);
+}
+
+/** CALC-09: decided only after the month ends. */
+export function limitResult(
+  spent: number,
+  limit: number,
+  month: string,
+  today: string,
+): "open" | "met" | "missed" {
+  if (month >= monthOf(today)) return "open";
+  return spent <= limit ? "met" : "missed";
+}
+
+/**
+ * CALC-10: past days of the month without an expense. `spendDates` leave out
+ * recurring payments, today is pending, so it never counts yet.
+ */
+export function noSpendDays(
+  spendDates: string[],
+  month: string,
+  today: string,
+): number {
+  const lastDay = paymentDate(month, 31);
+  const end = lastDay < today ? lastDay : today;
+  if (end.slice(0, 7) !== month) return 0;
+  const days = Number(end.slice(8)) - (lastDay < today ? 0 : 1);
+  return days - new Set(spendDates.filter((d) => d <= end && d !== today)).size;
+}
+
+/**
+ * FIN-08 (D5): goals in priority order take what is free. One that does not fit
+ * is flagged and skipped, so a smaller later one can still fit. Nothing left to
+ * pay is never flagged, even when free is negative.
+ */
+export function goalsThatDontFit(
+  goals: { id: number; remaining: number }[],
+  free: number,
+): number[] {
+  const flagged: number[] = [];
+  let left = free;
+  for (const goal of goals) {
+    if (goal.remaining <= 0) continue;
+    if (goal.remaining > left) flagged.push(goal.id);
+    else left -= goal.remaining;
+  }
+  return flagged;
+}
+
+/** FIN-08: the order after moving `id` to position `to`. Out of range changes nothing. */
+export function moveInOrder(ids: number[], id: number, to: number): number[] {
+  if (to < 0 || to >= ids.length) return ids;
+  const rest = ids.filter((other) => other !== id);
+  return [...rest.slice(0, to), id, ...rest.slice(to)];
 }

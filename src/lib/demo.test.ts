@@ -214,7 +214,7 @@ describe("demoRecurring (PUB-04, plan F4, E13)", () => {
 
 describe("demoGoals (PUB-04, plan F4, kontrolní seznam)", () => {
   it("has Dovolená with a deadline that never overflows on the 31st", () => {
-    expect(demoGoals("2026-10-31")[0]).toMatchObject({
+    expect(demoGoals("2026-10-31", [])[0]).toMatchObject({
       type: "saving",
       name: "Dovolená",
       target_amount: 3000000,
@@ -225,7 +225,7 @@ describe("demoGoals (PUB-04, plan F4, kontrolní seznam)", () => {
   });
 
   it("has an overdue goal for K5", () => {
-    expect(demoGoals("2026-10-31")[1]).toMatchObject({
+    expect(demoGoals("2026-10-31", [])[1]).toMatchObject({
       name: "Kurz",
       target_amount: 200000,
       deadline: "2026-09-01",
@@ -234,8 +234,30 @@ describe("demoGoals (PUB-04, plan F4, kontrolní seznam)", () => {
     });
   });
 
+  it("has a limit goal and a no-spend goal, by priority", () => {
+    const categories = [{ id: 7, name: "Zábava", kind: "expense" as const }];
+    expect(demoGoals("2026-10-31", categories).slice(2)).toMatchObject([
+      {
+        type: "limit",
+        name: "Zábava",
+        target_amount: 150000,
+        category_id: 7,
+        priority: 3,
+      },
+      { type: "no_spend", target_days: 10, priority: 4 },
+    ]);
+  });
+
+  it("skips the limit goal without its category", () => {
+    expect(demoGoals("2026-10-31", []).map((g) => g.type)).toEqual([
+      "saving",
+      "saving",
+      "no_spend",
+    ]);
+  });
+
   it("crosses the year", () => {
-    expect(demoGoals("2027-01-15")[0]).toMatchObject({
+    expect(demoGoals("2027-01-15", [])[0]).toMatchObject({
       deadline: "2027-07-01",
       deposits: [{ date: "2026-12-01" }],
     });

@@ -1,3 +1,4 @@
+import { monthExpenses } from "./transactions";
 import type { Db } from "./types";
 
 export type GoalType = "saving" | "limit" | "no_spend";
@@ -26,6 +27,7 @@ export interface Goal extends GoalInput {
   priority: number;
   paused_at: string | null;
   achieved_at: string | null;
+  created_at: string;
   saved: number; // deposits before the month (CALC-08 saved)
   deposited: number; // deposits in the month (CALC-07)
 }
@@ -34,7 +36,7 @@ export interface Goal extends GoalInput {
 export function listGoals(db: Db, month: string): Promise<Goal[]> {
   return db.select<Goal[]>(
     `SELECT g.id, g.type, g.name, g.icon, g.target_amount, g.target_days, g.category_id,
-       g.deadline, g.priority, g.paused_at, g.achieved_at,
+       g.deadline, g.priority, g.paused_at, g.achieved_at, g.created_at,
        coalesce((SELECT sum(d.amount) FROM goal_deposits d
          WHERE d.goal_id = g.id AND substr(d.date, 1, 7) < $1), 0) AS saved,
        coalesce((SELECT sum(d.amount) FROM goal_deposits d
@@ -154,4 +156,32 @@ export async function deleteDeposit(
 ): Promise<void> {
   await db.execute("DELETE FROM goal_deposits WHERE id = $1", [id]);
   await syncAchieved(db, goalId, today);
+}
+
+/** FIN-08: one statement, so a crash cannot leave half a new order. */
+export async function reorderGoals(db: Db, ids: number[]): Promise<void> {
+  await db.execute(
+    `UPDATE goals SET priority = (SELECT key + 1 FROM json_each($1) WHERE value = goals.id)
+     WHERE id IN (SELECT value FROM json_each($1))`,
+    [JSON.stringify(ids)],
+  );
+}
+
+export interface GoalSpending {
+  byCategory: Record<number, number>; // CALC-09
+  spendDates: string[]; // CALC-10: days with an expense, recurring payments left out
+}
+
+export async function goalSpending(
+  db: Db,
+  month: string,
+): Promise<GoalSpending> {
+  const { byCategory } = await monthExpenses(db, month);
+  const rows = await db.select<{ date: string }[]>(
+    `SELECT DISTINCT t.date FROM transactions t JOIN categories c ON c.id = t.category_id
+     WHERE c.kind = 'expense' AND t.recurring_id IS NULL AND substr(t.date, 1, 7) = $1
+     ORDER BY t.date`,
+    [month],
+  );
+  return { byCategory, spendDates: rows.map((row) => row.date) };
 }

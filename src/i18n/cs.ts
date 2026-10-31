@@ -149,6 +149,24 @@ export const cs = {
     resume: "Pokračovat",
     archive: "Archivovat",
     paused: "Pozastaveno",
+    type: "Typ cíle",
+    types: {
+      saving: "Spořicí",
+      limit: "Limitový",
+      no_spend: "Návykový",
+    },
+    limitAmount: "Limit za měsíc (Kč)",
+    category: "Kategorie",
+    days: "Dnů bez utrácení za měsíc",
+    noSpendCount: (days: number, target: number) =>
+      `${days} z ${target} dní bez utrácení`,
+    lastMonth: {
+      met: "Minulý měsíc splněno",
+      missed: "Minulý měsíc nesplněno",
+    },
+    dontFit: "Nevejde se do volných peněz tohoto měsíce.",
+    moveUp: (name: string) => `Posunout výš: ${name}`,
+    moveDown: (name: string) => `Posunout níž: ${name}`,
     achieved: "Splněno",
     overdue: "Po termínu. Prodluž termín, nebo cíl pozastav.",
     extend: "Prodloužit termín",
@@ -167,6 +185,8 @@ export const cs = {
       amount: "Zadej částku větší než 0, nejvýš 2 desetinná místa.",
       deadline: "Zadej termín v budoucnu.",
       date: "Zadej dnešní nebo minulé datum.",
+      category: "Vyber kategorii.",
+      days: "Zadej počet dní 1 až 31.",
     },
   },
   investments: {

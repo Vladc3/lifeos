@@ -4,14 +4,18 @@ import {
   archiveGoal,
   createGoal,
   deleteDeposit,
+  goalSpending,
   listDeposits,
   listGoals,
   pauseGoal,
+  reorderGoals,
   resumeGoal,
   updateGoal,
   type GoalInput,
 } from "./goals";
+import { createRecurring, generateRecurring } from "./recurring";
 import { createTestDb, must } from "./testDb";
+import { createTransaction } from "./transactions";
 import type { Db } from "./types";
 
 let db: Db;
@@ -214,5 +218,67 @@ describe("deposits (FIN-07)", () => {
     await createGoal(db, small);
     await addDeposit(db, 2, { date: "2026-10-05", amount: 1000 }, "2026-10-05");
     expect(await achievedAt()).toBeNull();
+  });
+});
+
+describe("reorderGoals (FIN-08)", () => {
+  it("stores the new order", async () => {
+    await createGoal(db, trip);
+    await createGoal(db, { ...trip, name: "Kolo" });
+    await createGoal(db, { ...trip, name: "Auto" });
+    await reorderGoals(db, [3, 1, 2]);
+    expect((await listGoals(db, "2026-10")).map((g) => g.name)).toEqual([
+      "Auto",
+      "Dovolená",
+      "Kolo",
+    ]);
+  });
+
+  it("a new goal goes after all of them", async () => {
+    await createGoal(db, trip);
+    await createGoal(db, trip);
+    await reorderGoals(db, [2, 1]);
+    await createGoal(db, { ...trip, name: "Nový" });
+    expect(must((await listGoals(db, "2026-10"))[2]).name).toBe("Nový");
+  });
+
+  it("leaves goals outside the list alone", async () => {
+    await createGoal(db, trip);
+    await createGoal(db, trip);
+    await reorderGoals(db, [1]);
+    expect((await listGoals(db, "2026-10")).map((g) => g.priority)).toEqual([
+      1, 2,
+    ]);
+  });
+});
+
+describe("goalSpending (CALC-09, CALC-10)", () => {
+  const spend = (date: string, amount: number, category_id = 1) =>
+    createTransaction(db, { date, amount, category_id, note: null });
+
+  it("sums expenses per category in the month", async () => {
+    await spend("2026-10-01", 100);
+    await spend("2026-10-31", 20);
+    await spend("2026-09-30", 7);
+    await spend("2026-10-02", 5, 2);
+    await spend("2026-10-02", 900, 11); // income
+    expect((await goalSpending(db, "2026-10")).byCategory).toEqual({
+      1: 120,
+      2: 5,
+    });
+  });
+
+  it("no-spend days ignore recurring payments and income", async () => {
+    await createRecurring(
+      db,
+      { name: "Nájem", amount: 100, category_id: 1, day_of_month: 5 },
+      "2026-10-01",
+    );
+    await generateRecurring(db, "2026-10-31");
+    await spend("2026-10-06", 100);
+    await spend("2026-10-07", 900, 11);
+    expect((await goalSpending(db, "2026-10")).spendDates).toEqual([
+      "2026-10-06",
+    ]);
   });
 });

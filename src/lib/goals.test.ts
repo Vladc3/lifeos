@@ -2,8 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   contributionMonths,
   goalPlan,
+  goalsThatDontFit,
   isOverdue,
+  limitProgress,
+  limitResult,
   monthlyContribution,
+  moveInOrder,
+  noSpendDays,
   reservedThisMonth,
 } from "./goals";
 
@@ -116,5 +121,98 @@ describe("reservedThisMonth (CALC-07 P, R5)", () => {
 
   it("is 0 for nothing", () => {
     expect(reservedThisMonth([], 0)).toBe(0);
+  });
+});
+
+describe("limitProgress (CALC-09)", () => {
+  it("is spending divided by the limit, in percent", () => {
+    expect(limitProgress(75000, 150000)).toBe(50);
+    expect(limitProgress(150000, 150000)).toBe(100);
+  });
+
+  it("can go over 100", () => {
+    expect(limitProgress(300000, 150000)).toBe(200);
+  });
+});
+
+describe("limitResult (CALC-09: po skončení měsíce)", () => {
+  it("stays open until the month ends, even on the last day", () => {
+    expect(limitResult(1000, 1000, "2026-11", "2026-11-30")).toBe("open");
+  });
+
+  it("spending equal to the limit is met after the month", () => {
+    expect(limitResult(1000, 1000, "2026-11", "2026-12-01")).toBe("met");
+  });
+
+  it("spending over the limit is missed after the month", () => {
+    expect(limitResult(1001, 1000, "2026-11", "2026-12-01")).toBe("missed");
+  });
+});
+
+describe("noSpendDays (CALC-10)", () => {
+  it("counts past days of the month without an expense", () => {
+    expect(
+      noSpendDays(["2026-11-02", "2026-11-03"], "2026-11", "2026-11-06"),
+    ).toBe(3);
+  });
+
+  it("today is pending, so it never counts", () => {
+    expect(noSpendDays([], "2026-11", "2026-11-03")).toBe(2);
+  });
+
+  it("the first day has nothing to count yet", () => {
+    expect(noSpendDays([], "2026-11", "2026-11-01")).toBe(0);
+  });
+
+  it("a finished month counts all its days", () => {
+    expect(noSpendDays(["2026-11-05"], "2026-11", "2026-12-15")).toBe(29);
+  });
+
+  it("the same day twice counts once", () => {
+    expect(
+      noSpendDays(["2026-11-02", "2026-11-02"], "2026-11", "2026-11-04"),
+    ).toBe(2);
+  });
+});
+
+describe("goalsThatDontFit (FIN-08, D5)", () => {
+  const goals = (...remaining: number[]) =>
+    remaining.map((value, i) => ({ id: i + 1, remaining: value }));
+
+  it("skips a goal that does not fit, a smaller later one can", () => {
+    expect(goalsThatDontFit(goals(800, 500, 100), 1000)).toEqual([2]);
+  });
+
+  it("goes by order: the first goals get the money", () => {
+    expect(goalsThatDontFit(goals(100, 800, 500), 1000)).toEqual([3]);
+  });
+
+  it("a goal fitting exactly is fine", () => {
+    expect(goalsThatDontFit(goals(1000), 1000)).toEqual([]);
+  });
+
+  it("never flags a goal with nothing left to pay, even when free is negative", () => {
+    expect(goalsThatDontFit(goals(0, 100), -2000)).toEqual([2]);
+  });
+
+  it("no goals", () => {
+    expect(goalsThatDontFit([], 1000)).toEqual([]);
+  });
+});
+
+describe("moveInOrder (FIN-08)", () => {
+  it("moves up and down", () => {
+    expect(moveInOrder([1, 2, 3], 2, 0)).toEqual([2, 1, 3]);
+    expect(moveInOrder([1, 2, 3], 2, 2)).toEqual([1, 3, 2]);
+  });
+
+  it("moves to the ends", () => {
+    expect(moveInOrder([1, 2, 3], 3, 0)).toEqual([3, 1, 2]);
+    expect(moveInOrder([1, 2, 3], 1, 2)).toEqual([2, 3, 1]);
+  });
+
+  it("stays put at the edges", () => {
+    expect(moveInOrder([1, 2, 3], 1, -1)).toEqual([1, 2, 3]);
+    expect(moveInOrder([1, 2, 3], 3, 3)).toEqual([1, 2, 3]);
   });
 });

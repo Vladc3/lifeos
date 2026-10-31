@@ -317,3 +317,49 @@ describe("order of generation (Skeptic round 2)", () => {
     expect((await generated()).map((t) => t.date)).toEqual(["2026-11-25"]);
   });
 });
+
+describe("freeForGoals (FIN-08, D5)", () => {
+  it("is what is left for goals, the investments and payments come first", async () => {
+    await createInvestment(
+      db,
+      { name: "ETF", icon: "📈", monthly_deposit: kc(3000) },
+      0,
+    );
+    await createRecurring(db, { ...rent, amount: kc(1000) }, "2026-11-01");
+    await spend("2026-11-01", 500);
+    await createGoal(db, { ...trip, target_amount: kc(1000) });
+    await addDeposit(
+      db,
+      1,
+      { date: "2026-11-01", amount: kc(400) },
+      "2026-11-01",
+    );
+    expect((await load("2026-11-02")).freeForGoals).toBe(kc(10100));
+  });
+
+  it("free minus remaining contributions equals B − S − P", async () => {
+    await createGoal(db, { ...trip, target_amount: kc(1000) });
+    await addDeposit(
+      db,
+      1,
+      { date: "2026-11-01", amount: kc(400) },
+      "2026-11-01",
+    );
+    const limit = await load("2026-11-02");
+    expect(limit.freeForGoals - kc(600)).toBe(
+      limit.budget - limit.spentBefore - limit.reserved,
+    );
+  });
+
+  it("subtracts deposits of archived goals too", async () => {
+    await createGoal(db, trip);
+    await addDeposit(
+      db,
+      1,
+      { date: "2026-11-01", amount: kc(400) },
+      "2026-11-01",
+    );
+    await archiveGoal(db, 1, "2026-11-01");
+    expect((await load("2026-11-02")).freeForGoals).toBe(kc(14600));
+  });
+});

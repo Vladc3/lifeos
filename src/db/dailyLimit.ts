@@ -19,6 +19,7 @@ export interface DailyLimitData extends DailyLimit {
   spentToday: number;
   reserved: number;
   daysLeft: number;
+  freeForGoals: number; // FIN-08 (D5)
 }
 
 interface PaymentRow extends RecurringSchedule {
@@ -74,20 +75,30 @@ export async function loadDailyLimit(
     [month],
   );
 
+  const upcoming = upcomingRecurring(payments, runs, today) + spent.generated;
+  const fixed = [
+    ...investments.map((i) => ({
+      plan: i.monthly_deposit,
+      deposited: i.deposited,
+    })),
+    { plan: 0, deposited: archived.deposited },
+  ];
   const reserved = reservedThisMonth(
     [
       ...goals.map((g) => ({
         plan: goalPlan(g, today),
         deposited: g.deposited,
       })),
-      ...investments.map((i) => ({
-        plan: i.monthly_deposit,
-        deposited: i.deposited,
-      })),
-      { plan: 0, deposited: archived.deposited },
+      ...fixed,
     ],
-    upcomingRecurring(payments, runs, today) + spent.generated,
+    upcoming,
   );
+  // D5: goals share what is left after everything without a priority.
+  const freeForGoals =
+    budget -
+    spent.before_today -
+    reservedThisMonth(fixed, upcoming) -
+    goals.reduce((sum, g) => sum + g.deposited, 0);
   const input = {
     budget,
     spentBefore: spent.before_today,
@@ -96,5 +107,5 @@ export async function loadDailyLimit(
     spentToday: spent.on_today,
   };
   const limit = dailyLimit(input);
-  return limit && { ...input, ...limit };
+  return limit && { ...input, ...limit, freeForGoals };
 }

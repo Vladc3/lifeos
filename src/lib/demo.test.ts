@@ -213,16 +213,24 @@ describe("demoRecurring (PUB-04, plan F4, E13)", () => {
 
 describe("demoGoals (PUB-04, plan F4, kontrolní seznam)", () => {
   it("has Dovolená with a deadline that never overflows on the 31st", () => {
-    expect(demoGoals("2026-10-31")).toMatchObject([
-      {
-        type: "saving",
-        name: "Dovolená",
-        target_amount: 3000000,
-        deadline: "2027-04-01",
-        priority: 1,
-        deposits: [{ date: "2026-09-01", amount: 500000 }],
-      },
-    ]);
+    expect(demoGoals("2026-10-31")[0]).toMatchObject({
+      type: "saving",
+      name: "Dovolená",
+      target_amount: 3000000,
+      deadline: "2027-04-01",
+      priority: 1,
+      deposits: [{ date: "2026-09-01", amount: 500000 }],
+    });
+  });
+
+  it("has an overdue goal for K5", () => {
+    expect(demoGoals("2026-10-31")[1]).toMatchObject({
+      name: "Kurz",
+      target_amount: 200000,
+      deadline: "2026-09-01",
+      priority: 2,
+      deposits: [{ date: "2026-09-01", amount: 150000 }],
+    });
   });
 
   it("crosses the year", () => {

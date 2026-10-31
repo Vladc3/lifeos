@@ -12,6 +12,15 @@ export interface GoalInput {
   deadline: string | null; // YYYY-MM-DD
 }
 
+export interface DepositInput {
+  date: string; // YYYY-MM-DD, not in the future
+  amount: number; // haléře, > 0
+}
+
+export interface Deposit extends DepositInput {
+  id: number;
+}
+
 export interface Goal extends GoalInput {
   id: number;
   priority: number;
@@ -52,11 +61,27 @@ export async function createGoal(db: Db, input: GoalInput): Promise<void> {
   );
 }
 
+/**
+ * D4: reached from all deposits, including this month's (CALC-08 saved leaves
+ * them out). One statement, in code rather than a trigger: `today` is local.
+ */
+async function syncAchieved(db: Db, id: number, today: string): Promise<void> {
+  await db.execute(
+    `UPDATE goals SET achieved_at = CASE
+       WHEN (SELECT coalesce(sum(d.amount), 0) FROM goal_deposits d WHERE d.goal_id = goals.id)
+         >= target_amount THEN coalesce(achieved_at, $1)
+     END
+     WHERE id = $2 AND type = 'saving'`,
+    [today, id],
+  );
+}
+
 /** The type of a goal never changes, so it is not updated. */
 export async function updateGoal(
   db: Db,
   id: number,
   input: GoalInput,
+  today: string,
 ): Promise<void> {
   await db.execute(
     `UPDATE goals SET name = $1, icon = $2, target_amount = $3, target_days = $4,
@@ -71,6 +96,7 @@ export async function updateGoal(
       id,
     ],
   );
+  await syncAchieved(db, id, today);
 }
 
 export async function pauseGoal(
@@ -97,4 +123,35 @@ export async function archiveGoal(
     today,
     id,
   ]);
+}
+
+export function listDeposits(db: Db, goalId: number): Promise<Deposit[]> {
+  return db.select<Deposit[]>(
+    "SELECT id, date, amount FROM goal_deposits WHERE goal_id = $1 ORDER BY date DESC, id DESC",
+    [goalId],
+  );
+}
+
+/** FIN-07: a deposit is not an expense, so it is not a transaction. */
+export async function addDeposit(
+  db: Db,
+  goalId: number,
+  input: DepositInput,
+  today: string,
+): Promise<void> {
+  await db.execute(
+    "INSERT INTO goal_deposits (goal_id, date, amount) VALUES ($1, $2, $3)",
+    [goalId, input.date, input.amount],
+  );
+  await syncAchieved(db, goalId, today);
+}
+
+export async function deleteDeposit(
+  db: Db,
+  id: number,
+  goalId: number,
+  today: string,
+): Promise<void> {
+  await db.execute("DELETE FROM goal_deposits WHERE id = $1", [id]);
+  await syncAchieved(db, goalId, today);
 }

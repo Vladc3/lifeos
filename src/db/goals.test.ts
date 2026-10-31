@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  addDeposit,
   archiveGoal,
   createGoal,
+  deleteDeposit,
+  listDeposits,
   listGoals,
   pauseGoal,
   resumeGoal,
@@ -86,7 +89,12 @@ describe("updateGoal (FIN-06)", () => {
     await createGoal(db, trip);
     await createGoal(db, { ...trip, name: "Kolo" });
     await pauseGoal(db, 2, "2026-10-01");
-    await updateGoal(db, 2, { ...trip, name: "Auto", target_amount: 5 });
+    await updateGoal(
+      db,
+      2,
+      { ...trip, name: "Auto", target_amount: 5 },
+      "2026-10-01",
+    );
     expect(must((await listGoals(db, "2026-10"))[1])).toMatchObject({
       name: "Auto",
       target_amount: 5,
@@ -111,5 +119,73 @@ describe("pause and archive (FIN-06)", () => {
     await createGoal(db, trip);
     await archiveGoal(db, 1, "2026-10-01");
     expect(await listGoals(db, "2026-10")).toEqual([]);
+  });
+});
+
+describe("deposits (FIN-07)", () => {
+  const small: GoalInput = { ...trip, target_amount: 1000 };
+  const achievedAt = async () =>
+    must((await listGoals(db, "2026-10"))[0]).achieved_at;
+
+  it("lists the deposits of one goal, newest first", async () => {
+    await createGoal(db, small);
+    await createGoal(db, small);
+    await addDeposit(db, 1, { date: "2026-09-01", amount: 100 }, "2026-10-01");
+    await addDeposit(db, 1, { date: "2026-10-01", amount: 200 }, "2026-10-01");
+    await addDeposit(db, 2, { date: "2026-10-01", amount: 300 }, "2026-10-01");
+    expect(await listDeposits(db, 1)).toEqual([
+      { id: 2, date: "2026-10-01", amount: 200 },
+      { id: 1, date: "2026-09-01", amount: 100 },
+    ]);
+  });
+
+  it("a deposit is not a transaction", async () => {
+    await createGoal(db, small);
+    await addDeposit(db, 1, { date: "2026-10-01", amount: 100 }, "2026-10-01");
+    expect(await db.select("SELECT id FROM transactions")).toEqual([]);
+  });
+
+  it("a deposit this month reaches the goal at once (D4)", async () => {
+    await createGoal(db, small);
+    await addDeposit(db, 1, { date: "2026-10-05", amount: 999 }, "2026-10-05");
+    expect(await achievedAt()).toBeNull();
+    await addDeposit(db, 1, { date: "2026-10-06", amount: 1 }, "2026-10-06");
+    expect(await achievedAt()).toBe("2026-10-06");
+  });
+
+  it("keeps the first achieved date on a later deposit", async () => {
+    await createGoal(db, small);
+    await addDeposit(db, 1, { date: "2026-10-05", amount: 1000 }, "2026-10-05");
+    await addDeposit(db, 1, { date: "2026-10-06", amount: 5 }, "2026-10-06");
+    expect(await achievedAt()).toBe("2026-10-05");
+  });
+
+  it("deleting a deposit can cancel the achievement", async () => {
+    await createGoal(db, small);
+    await addDeposit(db, 1, { date: "2026-10-05", amount: 1000 }, "2026-10-05");
+    await deleteDeposit(db, 1, 1, "2026-10-06");
+    expect(await achievedAt()).toBeNull();
+  });
+
+  it("raising the target cancels it, lowering reaches it", async () => {
+    await createGoal(db, small);
+    await addDeposit(db, 1, { date: "2026-10-05", amount: 1000 }, "2026-10-05");
+    await updateGoal(db, 1, { ...small, target_amount: 2000 }, "2026-10-06");
+    expect(await achievedAt()).toBeNull();
+    await updateGoal(db, 1, { ...small, target_amount: 900 }, "2026-10-07");
+    expect(await achievedAt()).toBe("2026-10-07");
+  });
+
+  it("uses local today from the caller, not the DB clock", async () => {
+    await createGoal(db, small);
+    await addDeposit(db, 1, { date: "2020-01-01", amount: 1000 }, "2020-01-02");
+    expect(await achievedAt()).toBe("2020-01-02");
+  });
+
+  it("leaves the other goals alone", async () => {
+    await createGoal(db, small);
+    await createGoal(db, small);
+    await addDeposit(db, 2, { date: "2026-10-05", amount: 1000 }, "2026-10-05");
+    expect(await achievedAt()).toBeNull();
   });
 });

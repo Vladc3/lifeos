@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import {
+  addDeposit,
   archiveGoal,
+  deleteDeposit,
+  listDeposits,
   listGoals,
   pauseGoal,
   resumeGoal,
@@ -10,8 +13,9 @@ import { generateRecurring } from "../../db/recurring";
 import type { Db } from "../../db/types";
 import { cs } from "../../i18n/cs";
 import { formatDate, monthOf } from "../../lib/dates";
-import { monthlyContribution } from "../../lib/goals";
+import { isOverdue, monthlyContribution } from "../../lib/goals";
 import { formatMoney } from "../../lib/money";
+import { DepositDialog } from "./DepositDialog";
 import { GoalDialog } from "./GoalDialog";
 
 const t = cs.goals;
@@ -60,6 +64,7 @@ export function GoalsScreen(props: {
   const [goals, setGoals] = useState<Goal[] | null>(null);
   const [version, setVersion] = useState(0);
   const [editing, setEditing] = useState<Goal | "new" | null>(null);
+  const [depositing, setDepositing] = useState<Goal | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -97,6 +102,10 @@ export function GoalsScreen(props: {
     const target = goal.target_amount ?? 0;
     const total = goal.saved + goal.deposited;
     const percent = Math.min(100, Math.floor((total / target) * 100));
+    const overdue =
+      goal.deadline !== null &&
+      !goal.achieved_at &&
+      isOverdue(goal.deadline, today);
     return (
       <li key={goal.id} className="flex flex-wrap items-center gap-4 p-4">
         <ProgressRing percent={percent} />
@@ -109,27 +118,37 @@ export function GoalsScreen(props: {
             {goal.deadline && ` · ${t.until(formatDate(goal.deadline))}`}
           </p>
           <p className="text-sm">
-            {goal.paused_at
-              ? t.paused
-              : t.contribution(
-                  formatMoney(
-                    monthlyContribution(
-                      target,
-                      goal.saved,
-                      goal.deadline ?? today,
-                      today,
+            {goal.achieved_at
+              ? t.achieved
+              : goal.paused_at
+                ? t.paused
+                : t.contribution(
+                    formatMoney(
+                      monthlyContribution(
+                        target,
+                        goal.saved,
+                        goal.deadline ?? today,
+                        today,
+                      ),
                     ),
-                  ),
-                )}
+                  )}
           </p>
+          {overdue && <p className="text-sm text-warning">{t.overdue}</p>}
         </div>
         <span className="flex flex-wrap gap-2">
           <button
             type="button"
             className="btn"
+            onClick={() => setDepositing(goal)}
+          >
+            {t.deposit}
+          </button>
+          <button
+            type="button"
+            className="btn"
             onClick={() => setEditing(goal)}
           >
-            {t.edit}
+            {overdue ? t.extend : t.edit}
           </button>
           <button
             type="button"
@@ -177,6 +196,23 @@ export function GoalsScreen(props: {
         <ul className="divide-y divide-border rounded-md border border-border">
           {goals.map(card)}
         </ul>
+      )}
+      {depositing && (
+        <DepositDialog
+          key={depositing.id}
+          title={depositing.name}
+          today={today}
+          load={() => listDeposits(db, depositing.id)}
+          onAdd={async (deposit) => {
+            await addDeposit(db, depositing.id, deposit, today);
+            reload();
+          }}
+          onDelete={async (id) => {
+            await deleteDeposit(db, id, depositing.id, today);
+            reload();
+          }}
+          onClose={() => setDepositing(null)}
+        />
       )}
       {editing && (
         <GoalDialog

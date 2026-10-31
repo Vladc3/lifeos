@@ -195,6 +195,15 @@ export function demoGoals(today: string): DemoGoal[] {
       priority: 1,
       deposits: [{ date: `${shiftedMonth(today, -1)}-01`, amount: 500000 }],
     },
+    {
+      type: "saving",
+      name: "Kurz",
+      icon: "🎓",
+      target_amount: 200000,
+      deadline: `${shiftedMonth(today, -1)}-01`,
+      priority: 2,
+      deposits: [{ date: `${shiftedMonth(today, -1)}-01`, amount: 150000 }],
+    },
   ];
 }
 

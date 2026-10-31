@@ -37,7 +37,7 @@ export function GoalDialog(props: {
       return;
     }
     try {
-      if (goal) await updateGoal(db, goal.id, result.value);
+      if (goal) await updateGoal(db, goal.id, result.value, today);
       else await createGoal(db, result.value);
       props.onSaved();
     } catch {

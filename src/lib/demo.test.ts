@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { DEMO_LIMITS, demoHabits, demoTransactions, devDbPath } from "./demo";
+import {
+  DEMO_LIMITS,
+  demoGoals,
+  demoHabits,
+  demoInvestments,
+  demoRecurring,
+  demoTransactions,
+  devDbPath,
+} from "./demo";
 import { habitStreak, reachesEstablished } from "./habits";
 
 describe("devDbPath (PUB-03, PUB-04: demo jen do dev DB)", () => {
@@ -165,5 +173,106 @@ describe("demoHabits gives the K-table numbers on every weekday (dev-team QA)", 
     expect(
       study && reachesEstablished(study.habit, [], study.logs, today),
     ).toBe(true);
+  });
+});
+
+describe("demoRecurring (PUB-04, plan F4, E13)", () => {
+  const categories = [
+    { id: 1, name: "Jídlo", kind: "expense" as const },
+    { id: 8, name: "Předplatné", kind: "expense" as const },
+  ];
+
+  it("has Předplatné on day 5, founded two months ago", () => {
+    expect(demoRecurring("2026-10-26", categories)).toEqual([
+      {
+        name: "Předplatné",
+        amount: 25900,
+        category_id: 8,
+        day_of_month: 5,
+        first_month: "2026-08",
+      },
+    ]);
+  });
+
+  it("crosses the year", () => {
+    expect(demoRecurring("2027-01-10", categories)[0].first_month).toBe(
+      "2026-11",
+    );
+  });
+
+  it("skips a missing category", () => {
+    expect(demoRecurring("2026-10-26", [categories[0]])).toEqual([]);
+  });
+
+  it("the old Předplatné rule is gone, the app generates it now", () => {
+    const ids = [...categories];
+    expect(
+      demoTransactions("2026-10-26", ids).filter((t) => t.category_id === 8),
+    ).toEqual([]);
+  });
+});
+
+describe("demoGoals (PUB-04, plan F4, kontrolní seznam)", () => {
+  it("has Dovolená with a deadline that never overflows on the 31st", () => {
+    expect(demoGoals("2026-10-31", [])[0]).toMatchObject({
+      type: "saving",
+      name: "Dovolená",
+      target_amount: 3000000,
+      deadline: "2027-04-01",
+      priority: 1,
+      deposits: [{ date: "2026-09-01", amount: 500000 }],
+    });
+  });
+
+  it("has an overdue goal for K5", () => {
+    expect(demoGoals("2026-10-31", [])[1]).toMatchObject({
+      name: "Kurz",
+      target_amount: 200000,
+      deadline: "2026-09-01",
+      priority: 2,
+      deposits: [{ date: "2026-09-01", amount: 150000 }],
+    });
+  });
+
+  it("has a limit goal and a no-spend goal, by priority", () => {
+    const categories = [{ id: 7, name: "Zábava", kind: "expense" as const }];
+    expect(demoGoals("2026-10-31", categories).slice(2)).toMatchObject([
+      {
+        type: "limit",
+        name: "Zábava",
+        target_amount: 150000,
+        category_id: 7,
+        priority: 3,
+      },
+      { type: "no_spend", target_days: 10, priority: 4 },
+    ]);
+  });
+
+  it("skips the limit goal without its category", () => {
+    expect(demoGoals("2026-10-31", []).map((g) => g.type)).toEqual([
+      "saving",
+      "saving",
+      "no_spend",
+    ]);
+  });
+
+  it("crosses the year", () => {
+    expect(demoGoals("2027-01-15", [])[0]).toMatchObject({
+      deadline: "2027-07-01",
+      deposits: [{ date: "2026-12-01" }],
+    });
+  });
+});
+
+describe("demoInvestments (PUB-04, plan F4, kontrolní seznam)", () => {
+  it("has ETF with its value and monthly deposit", () => {
+    expect(demoInvestments()).toEqual([
+      {
+        name: "ETF",
+        icon: "📈",
+        base_value: 4000000,
+        monthly_deposit: 200000,
+      },
+    ]);
   });
 });

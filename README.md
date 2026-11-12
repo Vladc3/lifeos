@@ -16,7 +16,7 @@ It also answers one question every morning: how much can I spend today?
 
 ## Status
 
-Phase 3 (habits, 0.3.0): habits from templates or your own, a monthly matrix where one click logs a day, streaks with the "never miss twice" rule, pauses, archive, at most 3 habits in the building phase and a notice when a habit becomes established. Phase 2 brought the finance basics: quick expense entry (Ctrl+N or the tray), monthly transactions and budget bars. Goals and the Today screen come next. The UI is Czech for now; English is planned after 1.0.
+Phase 4 (finance and goals, 0.4.0): recurring payments that fill in by themselves, saving, limit and no-spend goals with priorities, investment accounts, a daily spending limit that reserves goals and upcoming payments, and monthly charts. Phase 3 brought habits with a monthly matrix, streaks and the "never miss twice" rule. Phase 2 brought quick expense entry (Ctrl+N or the tray), transactions and budget bars. The Today screen comes next. The UI is Czech for now; English is planned after 1.0.
 
 ![Finance screen with demo data](docs/screenshots/finance.png)
 

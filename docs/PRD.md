@@ -1,6 +1,6 @@
 # Life OS – PRD
 
-Verze 0.7 · 2026-10-27 · vlastník: Vova
+Verze 0.8 · 2026-10-31 · vlastník: Vova
 
 ## 1. Přehled
 
@@ -39,6 +39,8 @@ App se používá ráno (plán dne, kolik můžu utratit) a večer (dopsat návy
 ## 2. Rozsah
 
 **V MVP:** první spuštění (onboarding), Dnes, Návyky, Týdenní review, Finance a finanční cíle, běh v liště s ranním a večerním check-inem, Nastavení (záloha, PIN zámek).
+
+**Investice** se v MVP evidují ručně: účet, aktuální hodnota a plánovaný měsíční vklad (FIN-12). Napojení na broker nebo kurzy je mimo rozsah.
 
 **Mimo rozsah MVP:**
 
@@ -99,13 +101,14 @@ App se používá ráno (plán dne, kolik můžu utratit) a večer (dopsat návy
 | FIN-02 | Seznam transakcí | Filtr podle měsíce a kategorie, úprava, smazání s potvrzením |
 | FIN-03 | Správa kategorií | Přidat, upravit (název, ikona, barva, typ výdaj/příjem, měsíční limit jen u výdajových), archivovat. Kategorie s transakcemi nejde smazat, jen archivovat. Změna typu kategorie změní i typ jejích transakcí, předtím se app zeptá s počtem dotčených transakcí |
 | FIN-04 | Rozpočet měsíce | Celkový rozpočet (bar všech výdajů měsíce proti `settings.monthly_budget`, bez nastaveného rozpočtu odkaz do Nastavení) + progress bar na každou kategorii s limitem > 0: zelená do 80 %, oranžová 80–100 %, červená nad 100 % |
-| FIN-05 | Opakované platby | Definice: název, částka, kategorie, den v měsíci. Při spuštění app se vytvoří chybějící transakce za všechny měsíce od vytvoření platby až do dneška (CALC-11) |
+| FIN-05 | Opakované platby | Definice: název, částka, kategorie, den v měsíci. Přidat, upravit, archivovat. Při načtení Finance a Cíle a při návratu do okna se vytvoří chybějící transakce za všechny měsíce od prvního měsíce platby až do dneška (CALC-11). Ve fázi 5 přibude spuštění app |
 | FIN-06 | Vlastní finanční cíle, 3 typy: spořicí, limitový, návykový | Libovolný počet. Přidat, upravit, pozastavit, archivovat. Validace podle typu (spořicí: částka + termín v budoucnu, limitový: kategorie + částka, návykový: počet dní 1–31) |
-| FIN-07 | Vklady do spořicího cíle | Vklad není výdaj. Snižuje zbývající příspěvek měsíce (CALC-07, CALC-08). Po dosažení cílové částky se cíl označí jako splněný |
-| FIN-08 | Priorita cílů | Řazení přetažením. Když součet příspěvků přesáhne volné peníze (B − S v CALC-07), zobrazí se, které cíle se nevejdou |
+| FIN-07 | Vklady do spořicího cíle | Vklad není výdaj, datum nejde v budoucnu, vklad jde smazat. Snižuje zbývající příspěvek měsíce (CALC-08). Splnění se počítá ze všech vkladů včetně tohoto měsíce a nastane hned po dosažení cílové částky. Smazání vkladu nebo zvýšení cílové částky ho může zrušit |
+| FIN-08 | Priorita cílů | Řazení přetažením i tlačítky. Volné peníze = B − S − rezervace investic − `U` − vklady cílů tento měsíc (CALC-07). Cíle podle priority: když se zbylý příspěvek nevejde, cíl se označí a přeskočí, další menší se může vejít. Pozastavené cíle a cíle bez zbylého příspěvku se neoznačují. Bez rozpočtu se neoznačuje nic |
 | FIN-09 | Měsíční přehled | Graf příjmů a výdajů po dnech, rozdělení výdajů podle kategorií, součty měsíce |
-| FIN-10 | Denní limit | Výpočet podle CALC-07, zobrazení v DNE-03 |
-| FIN-11 | Grafický přehled financí | Jedna obrazovka: útrata měsíce proti rozpočtu + spořicí cíle a jejich plnění. Investice podle Q9. Přesné kritérium doplní plán fáze 4 |
+| FIN-10 | Denní limit | Výpočet podle CALC-07, zobrazení ve Finance, od fáze 5 v DNE-03 |
+| FIN-11 | Grafický přehled financí | Na obrazovce Cíle: útrata měsíce proti rozpočtu, spořicí cíle a jejich plnění, součet hodnoty investic a vklady měsíce |
+| FIN-12 | Investice | Účet: název, ikona, aktuální hodnota, měsíční vklad. Přidat, upravit, archivovat. Vklad není výdaj, zvýší hodnotu a jde smazat. Hodnotu jde přepsat, dosavadní vklady pak v ní jsou a jejich smazání ji nezmění |
 
 ## 6. Výpočty a pravidla
 
@@ -123,11 +126,11 @@ Všechny výpočty jsou čisté funkce v `src/lib`, každé pravidlo má vlastn�
 
 **Finance** (všechny částky v haléřích)
 
-- **CALC-07 Denní limit.** `B` = celkový měsíční rozpočet (`settings.monthly_budget`). `S` = všechny výdaje tohoto měsíce s datem před dneškem, včetně opakovaných plateb. `P` = Σ přes aktivní spořicí cíle max(0, měsíční příspěvek − vklady tento měsíc). `D` = zbývající dny měsíce včetně dneška. Denní dávka `A = max(0, floor((B − S − P) / D))`. Zobrazená hodnota = `A − dnešní výdaje` (může být záporná). Když `B` není nastavený nebo je 0, výpočet se neprovádí (DNE-03). Limity kategorií do výpočtu nevstupují, slouží jen pro FIN-04. Příjmy do výpočtu nevstupují. Transakce s datem v budoucnu se započítají až v jejich den. Příklad: B = 7 000 Kč, S = 5 900 Kč (z toho 2 000 Kč v kategorii bez limitu), P = 0, D = 11 → A = 100 Kč. Dnes utraceno 40 Kč → zobrazí 60 Kč.
+- **CALC-07 Denní limit.** `B` = celkový měsíční rozpočet (`settings.monthly_budget`). `S` = všechny výdaje tohoto měsíce s datem před dneškem, včetně opakovaných plateb. `P` = Σ cíle max(plán, vklady tento měsíc) + Σ investice max(plán, vklady tento měsíc) + `U`. Plán spořicího cíle = příspěvek CALC-08, pozastavený, splněný a archivovaný cíl má plán 0. Plán investice = měsíční vklad, archivovaná má 0. Vklady tohoto měsíce se počítají vždy, zaplacený vklad tedy zůstává rezervovaný a vklad nad plán limit sníží. `U` = opakované výdaje, které tento měsíc ještě nemají běh a mají datum > dnes (a tento měsíc ≥ první měsíc platby), + vygenerované výdaje tohoto měsíce s datem ≥ dnes. `D` = zbývající dny měsíce včetně dneška. Denní dávka `A = max(0, floor((B − S − P) / D))`. Zobrazená hodnota = `A − dnešní výdaje` (může být záporná), dnešní výdaje jsou bez vygenerovaných plateb. Když `B` není nastavený nebo je 0, výpočet se neprovádí (DNE-03). Limity kategorií do výpočtu nevstupují, slouží jen pro FIN-04. Příjmy do výpočtu nevstupují. Transakce s datem v budoucnu se započítají až v jejich den. Příklad: B = 7 000 Kč, S = 5 900 Kč (z toho 2 000 Kč v kategorii bez limitu), P = 0, D = 11 → A = 100 Kč. Dnes utraceno 40 Kč → zobrazí 60 Kč.
 - **CALC-08 Měsíční příspěvek spořicího cíle.** `M` = počet měsíců od aktuálního do měsíce termínu včetně, min. 1. Příspěvek = `ceil((target − saved) / M)`, kde `saved` = součet vkladů před tímto měsícem. Když `saved ≥ target`, nastaví se `achieved_at` a příspěvek je 0. Prošlý termín bez splnění = stav „po termínu“, M = 1.
 - **CALC-09 Limitový cíl.** Progress = výdaje kategorie v měsíci ÷ limit cíle. Měsíc je splněný, když výdaje ≤ limit. Vyhodnocuje se po skončení měsíce.
 - **CALC-10 Den bez utrácení.** Den bez jediného výdaje, nepočítají se transakce vytvořené z opakovaných plateb. Stav automatického návyku se vždy počítá z transakcí, neukládá se do `habit_logs` (zpětně zapsaný výdaj tak změní i minulé dny). Minulý den = `done` nebo `missed`, dnes = `pending`. Návykový cíl je splněný, když počet takových dní v měsíci ≥ `target_days`.
-- **CALC-11 Opakované platby.** Generování je idempotentní: unikátní dvojice (`recurring_id`, měsíc). Doplní se všechny měsíce od `created_at` platby do aktuálního, v aktuálním jen když den v měsíci ≤ dnes. Den v měsíci 29–31 v kratším měsíci = poslední den měsíce.
+- **CALC-11 Opakované platby.** Generování je idempotentní: unikátní dvojice (`recurring_id`, měsíc). Doplní se všechny měsíce od `first_month` do aktuálního, v aktuálním jen když datum platby ≤ dnes. Den v měsíci 29–31 v kratším měsíci = poslední den měsíce. `first_month` je první měsíc, jehož datum platby je při založení ≥ dnes, určí se jednou a nemění se. Úprava platby platí jen pro další běhy, před úpravou nebo archivací se doplní vynechané měsíce. Transakce a běh se zapíší jedním příkazem s triggerem.
 
 **Systém**
 
@@ -146,10 +149,12 @@ SQLite, jeden soubor `life-os.db` v Tauri app config dir (NFR-03). Vývojová a 
 | weekly\_reviews | week\_start, went\_well, went\_badly, change\_next | UNIQUE(week\_start) |
 | categories | name, icon, color, kind (`expense` / `income`), monthly\_budget, archived\_at | monthly\_budget 0 = bez limitu, u `income` vždy 0 |
 | transactions | date, amount, category\_id, note, recurring\_id (od fáze 4, FIN-05) | amount > 0. Typ (příjem / výdaj) se neukládá, je to `kind` kategorie (JOIN) |
-| recurring | name, amount, category\_id, day\_of\_month, archived\_at |  |
+| recurring | name, amount, category\_id, day\_of\_month, first\_month (`YYYY-MM`), archived\_at | Jen archivace, ne mazání |
 | recurring\_runs | recurring\_id, month (`YYYY-MM`), transaction\_id | UNIQUE(recurring\_id, month), CALC-11 |
 | goals | type (`saving` / `limit` / `no_spend`), name, icon, target\_amount, target\_days, category\_id, deadline, priority, paused\_at, achieved\_at, archived\_at | Pole podle typu, viz FIN-06 |
 | goal\_deposits | goal\_id, date, amount | Jen pro `saving` |
+| investments | name, icon, base\_value, base\_deposit\_id, monthly\_deposit, archived\_at | Hodnota = base\_value + vklady s id > base\_deposit\_id |
+| investment\_deposits | investment\_id, date, amount | Id se nepoužije znovu (AUTOINCREMENT) |
 | settings | key, value | onboarding\_done, monthly\_budget (haléře), pin\_hash, checkin\_morning a checkin\_evening (`HH:MM`, prázdné = vypnuto) a další |
 
 ## 8. UI a design
@@ -160,8 +165,8 @@ SQLite, jeden soubor `life-os.db` v Tauri app config dir (NFR-03). Vývojová a 
 | --- | --- |
 | Dnes | DNE-01 až DNE-06 v mřížce karet |
 | Návyky | Měsíční matice (HAB-03), nahoře konzistence měsíce v kroužku a trend, vpravo top návyky. Tlačítko „Přidat návyk“ |
-| Finance | Rozpočet po kategoriích (FIN-04), seznam transakcí (FIN-02), měsíční přehled (FIN-09) |
-| Cíle | Karty cílů seřazené podle priority, progress kruh, příspěvek měsíce, tlačítko vkladu |
+| Finance | Denní limit (FIN-10, do fáze 5), rozpočet po kategoriích (FIN-04), měsíční přehled (FIN-09), seznam transakcí (FIN-02) |
+| Cíle | Přehled financí (FIN-11), karty cílů seřazené podle priority, progress kruh, příspěvek měsíce, tlačítko vkladu, investice (FIN-12) |
 | Review | Aktuální týdenní review + historie |
 | Nastavení | Celkový rozpočet, kategorie, opakované platby, check-iny a autostart, archiv, záloha, PIN |
 
@@ -234,7 +239,7 @@ Každá fáze končí spustitelnou verzí, zelenými testy a tagem verze.
 | 1 Kostra | 0.1.0 | Tauri + React projekt, sidebar, design tokeny, SQLite + migrační systém, tabulka settings, CI s lintem a testy, NFR-09, SYS-01 (bez Nového výdaje a časovače), SYS-02, SYS-03, PUB-01 až PUB-03. Plán: `docs/plans/F1-kostra.md` |
 | 2 Finance základ | 0.2.0 | FIN-01 až FIN-04, výchozí kategorie, PUB-04 (transakce a kategorie), SYS-01 Nový výdaj. Plán: `docs/plans/F2-finance.md` |
 | 3 Návyky | 0.3.0 | HAB-01 až HAB-06, HAB-09, CALC-01 až CALC-06. Plán: `docs/plans/F3-navyky.md` |
-| 4 Finance a cíle | 0.4.0 | FIN-05 až FIN-11, CALC-07 až CALC-11 |
+| 4 Finance a cíle | 0.4.0 | FIN-05 až FIN-12, CALC-07 až CALC-11. Plán: `docs/plans/F4-finance-cile.md` |
 | 5 Dnes | 0.5.0 | ONB-01 až ONB-05, DNE-01 až DNE-06, HAB-07, HAB-10, CALC-12 |
 | 6 Dokončení | 1.0.0 | HAB-08, REV-01 až REV-03, NFR-05, NFR-06, release build Windows + Linux |
 
@@ -272,14 +277,24 @@ Rozhodnout před fází, ve které se používají. Do té doby se neimplementuj
 
 | # | Otázka | Fáze | Návrh |
 | --- | --- | --- | --- |
-| Q6 | Jak dělat atomické zápisy (CALC-11, NFR-05)? tauri-plugin-sql má pool spojení, takže `BEGIN`/`COMMIT` v oddělených `execute()` nejsou bezpečné | 4 | Rozhodnout v plánu fáze 4 (např. Rust příkaz pro dávku) |
+| Q6 | Jak dělat atomické zápisy pro zálohy (NFR-05)? tauri-plugin-sql má pool spojení, takže `BEGIN`/`COMMIT` v oddělených `execute()` nejsou bezpečné | 6 | Rozhodnout v plánu fáze 6. CALC-11 vyřešeno triggerem ve v0.8 |
 | Q7 | Kde běží časovač check-inů (HAB-07)? Skrytý webview může brzdit JS časovače | 5 | Rozhodnout v plánu fáze 5 (JS vs. Rust) |
-| Q8 | Jak zapsat vratku (refundace nákupu)? Zatím jen jako příjem, `amount > 0` platí | 4 | Rozhodnout před FIN-09 a CALC-07 |
-| Q9 | Investice: co evidovat (ruční hodnota, nebo vklady), jak je ukázat ve FIN-11. Rozšíří kap. 2 | 4 | Rozhodnout v plánu fáze 4 |
+
+Vyřešené ve v0.8: Q8 vratka se zapisuje jako příjem, výdaje kategorie se nesníží. Q9 investice jsou účet s ruční hodnotou a měsíčním vkladem (FIN-12).
 
 Vyřešené ve v0.5: Q4 SQL testy ve Vitest proti `node:sqlite` v paměti se stejnými migracemi (plán fáze 1, D1).
 
 Vyřešené ve v0.4: Q1 `rest` jen dopředu (CALC-02), Q2 `min_value` (CALC-02), Q3 fáze u `weekly_count` (CALC-05), Q5 review kdykoli zpětně (REV-01).
+
+## Změny ve verzi 0.8
+
+Podle schváleného plánu fáze 4 (`docs/plans/F4-finance-cile.md`, D1–D8):
+
+- CALC-11 a kap. 7: `recurring.first_month` místo `created_at`, atomický zápis triggerem (Q6 pro CALC-11).
+- Nový FIN-12 Investice, kap. 2 a 7 rozšířené, Q9 vyřešená. Q8 vyřešená: vratka je příjem.
+- CALC-07: zaplacený vklad zůstává rezervovaný, `P` zahrnuje investice a nadcházející opakované výdaje. Dnešní výdaje jsou bez vygenerovaných plateb.
+- FIN-07: splnění ze všech vkladů, jde zrušit. FIN-08: přesná definice volných peněz. FIN-11: přesné kritérium.
+- FIN-10 je do fáze 5 ve Finance. FIN-05: generování při načtení obrazovek, spuštění app přibude ve fázi 5.
 
 ## Změny ve verzi 0.7
 

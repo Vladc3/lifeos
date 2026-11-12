@@ -226,6 +226,7 @@ function CategoryDialog(props: {
         ? await updateCategory(db, category.id, result.value)
         : await createCategory(db, result.value);
       if (saved === "name_taken") setError(t.errors.nameTaken);
+      else if (saved === "kind_locked") setError(t.errors.kindLocked);
       else props.onSaved();
     } catch {
       setError(cs.saveError);

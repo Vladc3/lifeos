@@ -6,7 +6,10 @@ import { DatabaseSync } from "node:sqlite";
 import {
   DEMO_BUDGET,
   DEMO_LIMITS,
+  demoGoals,
   demoHabits,
+  demoInvestments,
+  demoRecurring,
   demoTransactions,
   devDbPath,
 } from "../src/lib/demo.ts";
@@ -49,12 +52,22 @@ const categories = db
   )
   .all() as { id: number; name: string; kind: "expense" | "income" }[];
 const transactions = demoTransactions(today, categories);
+const recurring = demoRecurring(today, categories);
+const goals = demoGoals(today, categories);
+const investments = demoInvestments();
 const habits = demoHabits(today);
 
 // One connection, so a plain transaction is safe here (unlike plugin-sql's pool).
 db.exec("BEGIN");
 try {
+  // Plan F4, E13: runs too, otherwise the months would never be generated again.
+  db.exec("DELETE FROM recurring_runs");
   db.exec("DELETE FROM transactions");
+  db.exec("DELETE FROM recurring");
+  db.exec("DELETE FROM goal_deposits");
+  db.exec("DELETE FROM goals");
+  db.exec("DELETE FROM investment_deposits");
+  db.exec("DELETE FROM investments");
   db.exec("UPDATE categories SET monthly_budget = 0");
   const limit = db.prepare(
     "UPDATE categories SET monthly_budget = ? WHERE name = ? AND kind = 'expense'",
@@ -69,6 +82,42 @@ try {
   );
   for (const t of transactions)
     insert.run(t.date, t.amount, t.category_id, t.note);
+  const addRecurring = db.prepare(
+    "INSERT INTO recurring (name, amount, category_id, day_of_month, first_month) VALUES (?, ?, ?, ?, ?)",
+  );
+  for (const r of recurring)
+    addRecurring.run(
+      r.name,
+      r.amount,
+      r.category_id,
+      r.day_of_month,
+      r.first_month,
+    );
+  const addGoal = db.prepare(
+    "INSERT INTO goals (type, name, icon, target_amount, target_days, category_id, deadline, priority) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+  const addDeposit = db.prepare(
+    "INSERT INTO goal_deposits (goal_id, date, amount) VALUES (?, ?, ?)",
+  );
+  for (const g of goals) {
+    const { lastInsertRowid } = addGoal.run(
+      g.type,
+      g.name,
+      g.icon,
+      g.target_amount,
+      g.target_days,
+      g.category_id,
+      g.deadline,
+      g.priority,
+    );
+    for (const d of g.deposits)
+      addDeposit.run(lastInsertRowid, d.date, d.amount);
+  }
+  const addInvestment = db.prepare(
+    "INSERT INTO investments (name, icon, base_value, monthly_deposit) VALUES (?, ?, ?, ?)",
+  );
+  for (const i of investments)
+    addInvestment.run(i.name, i.icon, i.base_value, i.monthly_deposit);
   // PUB-04 habits (plan F3, E10): children first because of the foreign keys.
   db.exec("DELETE FROM habit_logs");
   db.exec("DELETE FROM habit_pauses");

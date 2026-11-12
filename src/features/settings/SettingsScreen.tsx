@@ -4,6 +4,7 @@ import type { Db } from "../../db/types";
 import { cs } from "../../i18n/cs";
 import { BudgetSetting } from "./BudgetSetting";
 import { CategorySettings } from "./CategorySettings";
+import { RecurringSettings } from "./RecurringSettings";
 
 // Settings in tabs (v0.2.1): finance now, system grows with check-ins, backup, PIN.
 // Budget and categories need the DB, so they wait for it.
@@ -14,8 +15,8 @@ export function SettingsScreen({
   db: Db | null;
   today: string;
 }) {
-  const [tab, setTab] = useState<"finance" | "system">("finance");
-  const tabs = ["finance", "system"] as const;
+  const [tab, setTab] = useState<"finance" | "recurring" | "system">("finance");
+  const tabs = ["finance", "recurring", "system"] as const;
 
   return (
     <div className="max-w-3xl space-y-8">
@@ -48,6 +49,8 @@ export function SettingsScreen({
               <CategorySettings db={db} today={today} />
             </>
           )
+        ) : tab === "recurring" ? (
+          db && <RecurringSettings db={db} today={today} />
         ) : (
           <SystemSettings />
         )}
